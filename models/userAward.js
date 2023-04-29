@@ -11,14 +11,14 @@ const userAwardSchema = new mongoose.Schema({
     ref: 'Award',
     required: true,
   },
-  dateOfGetting: {
+  date: {
     type: Date,
     required: false,
   },
   status: {
     type: String,
     required: true,
-    enum: ['inProgress', 'received'],
+    enum: ['inProgress', 'received', 'cancelled'],
   },
 });
 

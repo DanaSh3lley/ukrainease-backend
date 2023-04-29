@@ -19,16 +19,29 @@ const questionProgressSchema = new mongoose.Schema({
   answers: {
     type: [
       {
-        date: Date,
-        correct: Boolean,
-        receivedCoins: Number,
-        receivedExperienceCoins: Number,
+        date: {
+          type: Date,
+          required: true,
+          default: Date.now,
+        },
+        correct: {
+          type: Boolean,
+          required: true,
+        },
+        receivedCoins: {
+          type: Number,
+          required: true,
+        },
+        receivedExperienceCoins: {
+          type: Number,
+          required: true,
+        },
       },
     ],
     required: false,
   },
   nextReview: {
-    type: String,
+    type: Date,
     required: false,
   },
 });

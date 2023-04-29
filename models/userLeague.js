@@ -6,10 +6,15 @@ const userLeagueSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
-  lesson: {
+  league: {
     type: mongoose.Schema.ObjectId,
     ref: 'League',
     required: true,
+  },
+  lastUpdate: {
+    type: Date,
+    required: false,
+    default: Date.now(),
   },
 });
 

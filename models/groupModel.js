@@ -4,6 +4,8 @@ const groupSchema = new mongoose.Schema({
   name: {
     type: 'string',
     required: true,
+    maxLength: 40,
+    minLength: 120,
   },
   users: {
     type: [
@@ -14,6 +16,18 @@ const groupSchema = new mongoose.Schema({
       },
     ],
     required: true,
+  },
+  description: {
+    type: String,
+    required: false,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now,
   },
 });
 

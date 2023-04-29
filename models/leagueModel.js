@@ -23,7 +23,6 @@ const leagueSchema = new mongoose.Schema({
     ],
     required: true,
   },
-  required: true,
 });
 
 const League = mongoose.model('League', leagueSchema);

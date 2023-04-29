@@ -4,8 +4,9 @@ const questionSchema = new mongoose.Schema({
   text: {
     type: String,
     required: true,
+    unique: true,
   },
-  type: {
+  questionType: {
     type: [
       {
         type: mongoose.Schema.ObjectId,
@@ -14,10 +15,13 @@ const questionSchema = new mongoose.Schema({
       },
     ],
     required: true,
+    default: [],
   },
   options: {
-    type: [{ value: String, isCorrect: Boolean }],
+    type: [{ value: { type: String, unique: true }, isCorrect: Boolean }],
     required: true,
+    maxLength: 8,
+    minLength: 1,
   },
   explanation: {
     type: String,
@@ -26,6 +30,20 @@ const questionSchema = new mongoose.Schema({
   hint: {
     type: String,
     required: false,
+  },
+  difficulty: {
+    type: Number,
+    required: true,
+    min: 1,
+    max: 5,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now,
   },
 });
 

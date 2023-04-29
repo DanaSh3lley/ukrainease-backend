@@ -27,9 +27,18 @@ const lessonProgressSchema = new mongoose.Schema({
     ],
     required: false,
   },
-  nextReview: {
-    type: String,
+  currentQuestion: {
+    type: Number,
     required: false,
+    default: 0,
+  },
+  nextReview: {
+    type: Date,
+    required: false,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
   },
 });
 
