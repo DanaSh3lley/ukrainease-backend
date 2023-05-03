@@ -18,6 +18,6 @@ const userLeagueSchema = new mongoose.Schema({
   },
 });
 
-const UserLeague = mongoose.model('UserLeague', userLeagueSchema);
+const UserLeagueModel = mongoose.model('UserLeagueModel', userLeagueSchema);
 
-module.exports = UserLeague;
+module.exports = UserLeagueModel;

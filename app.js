@@ -9,9 +9,17 @@ const cookieParser = require('cookie-parser');
 const compression = require('compression');
 const cors = require('cors');
 
+const path = require('path');
 const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
+
 const userRouter = require('./routes/userRoutes');
+const awardRouter = require('./routes/awardRoutes');
+const typeRouter = require('./routes/typeRoutes');
+const questionRouter = require('./routes/questionRoutes');
+const lessonRouter = require('./routes/lessonRoutes');
+const groupRouter = require('./routes/groupRoutes');
+const leagueRouter = require('./routes/leagueRoutes');
 
 const app = express();
 
@@ -19,6 +27,9 @@ app.use(cors());
 app.options('*', cors());
 
 app.use(helmet());
+
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'pug');
 
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
@@ -44,6 +55,12 @@ app.use(compression());
 
 // 3) ROUTES
 app.use('/api/v1/users', userRouter);
+app.use('/api/v1/awards', awardRouter);
+app.use('/api/v1/types', typeRouter);
+app.use('/api/v1/questions', questionRouter);
+app.use('/api/v1/lessons', lessonRouter);
+app.use('/api/v1/groups', groupRouter);
+app.use('/api/v1/leagues', leagueRouter);
 
 app.all('*', (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));

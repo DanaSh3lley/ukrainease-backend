@@ -46,9 +46,9 @@ const questionProgressSchema = new mongoose.Schema({
   },
 });
 
-const QuestionProgress = mongoose.model(
-  'QuestionProgress',
+const QuestionProgressModel = mongoose.model(
+  'QuestionProgressModel',
   questionProgressSchema
 );
 
-module.exports = QuestionProgress;
+module.exports = QuestionProgressModel;

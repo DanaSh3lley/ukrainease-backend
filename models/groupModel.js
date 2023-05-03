@@ -5,7 +5,7 @@ const groupSchema = new mongoose.Schema({
     type: 'string',
     required: true,
     maxLength: 40,
-    minLength: 120,
+    minLength: 4,
   },
   users: {
     type: [

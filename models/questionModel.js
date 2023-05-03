@@ -4,21 +4,17 @@ const questionSchema = new mongoose.Schema({
   text: {
     type: String,
     required: true,
-    unique: true,
   },
-  questionType: {
-    type: [
-      {
-        type: mongoose.Schema.ObjectId,
-        ref: 'Type',
-        required: true,
-      },
-    ],
-    required: true,
-    default: [],
-  },
+  questionType: [
+    {
+      type: mongoose.Schema.ObjectId,
+      ref: 'Type',
+      required: true,
+      default: [],
+    },
+  ],
   options: {
-    type: [{ value: { type: String, unique: true }, isCorrect: Boolean }],
+    type: [{ value: String, isCorrect: Boolean }],
     required: true,
     maxLength: 8,
     minLength: 1,

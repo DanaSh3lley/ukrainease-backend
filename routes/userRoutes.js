@@ -5,6 +5,11 @@ const authController = require('../controllers/authController');
 const router = express.Router();
 
 router.post('/signup', authController.signup);
+// Route for sending a verification email
+router.post('/verify-email', authController.sendVerification);
+// Route for verifying the email
+router.get('/verify-email/:token', authController.verifyEmail);
+
 router.post('/login', authController.login);
 router.get('/logout', authController.logout);
 
@@ -24,17 +29,15 @@ router.patch(
 );
 router.delete('/deleteMe', userController.deleteMe);
 
-router.use(authController.restrictTo('admin'));
-
 router
   .route('/')
   .get(userController.getAllUsers)
-  .post(userController.createUser);
+  .post(authController.restrictTo('admin'), userController.createUser);
 
 router
   .route('/:id')
   .get(userController.getUser)
-  .patch(userController.updateUser)
-  .delete(userController.deleteUser);
+  .patch(authController.restrictTo('admin'), userController.updateUser)
+  .delete(authController.restrictTo('admin'), userController.deleteUser);
 
 module.exports = router;

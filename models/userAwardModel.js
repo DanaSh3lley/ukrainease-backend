@@ -22,6 +22,6 @@ const userAwardSchema = new mongoose.Schema({
   },
 });
 
-const UserAward = mongoose.model('UserAward', userAwardSchema);
+const UserAwardModel = mongoose.model('UserAwardModel', userAwardSchema);
 
-module.exports = UserAward;
+module.exports = UserAwardModel;

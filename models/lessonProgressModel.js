@@ -42,6 +42,9 @@ const lessonProgressSchema = new mongoose.Schema({
   },
 });
 
-const LessonProgress = mongoose.model('LessonProgress', lessonProgressSchema);
+const LessonProgressModel = mongoose.model(
+  'LessonProgressModel',
+  lessonProgressSchema
+);
 
-module.exports = LessonProgress;
+module.exports = LessonProgressModel;
