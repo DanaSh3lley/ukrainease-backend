@@ -14,10 +14,12 @@ const questionSchema = new mongoose.Schema({
     },
   ],
   options: {
-    type: [{ value: String, isCorrect: Boolean }],
+    type: [String],
     required: true,
-    maxLength: 8,
-    minLength: 1,
+  },
+  correctIndex: {
+    type: Number,
+    required: true,
   },
   explanation: {
     type: String,

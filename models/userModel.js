@@ -22,11 +22,11 @@ const userSchema = new mongoose.Schema(
     },
     experiencePoints: {
       type: Number,
-      default: 0,
+      default: 10,
     },
     level: {
       type: Number,
-      default: 0,
+      default: 1,
     },
     photo: {
       type: String,
@@ -53,6 +53,10 @@ const userSchema = new mongoose.Schema(
         message: 'Passwords are not the same!',
       },
     },
+    emailNewsletter: {
+      type: Boolean,
+      default: false,
+    },
     passwordChangedAt: Date,
     passwordResetToken: String,
     passwordResetExpires: Date,
@@ -66,7 +70,6 @@ const userSchema = new mongoose.Schema(
     emailVerified: {
       type: Boolean,
       default: false,
-      select: false,
     },
   },
   {
@@ -96,6 +99,11 @@ userSchema.pre('save', function (next) {
 
 userSchema.pre(/^find/, function (next) {
   this.find({ active: { $ne: false } });
+  next();
+});
+
+userSchema.pre('count', function (next) {
+  this.count({ active: { $ne: false } });
   next();
 });
 

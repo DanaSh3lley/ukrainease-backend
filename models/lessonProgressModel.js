@@ -19,13 +19,12 @@ const lessonProgressSchema = new mongoose.Schema({
   answers: {
     type: [
       {
-        date: Date,
-        percentCorrect: Number,
-        receivedCoins: Number,
-        receivedExperienceCoins: Number,
+        type: mongoose.Schema.ObjectId,
+        ref: 'Answer',
+        required: true,
       },
     ],
-    required: false,
+    required: true,
   },
   currentQuestion: {
     type: Number,
@@ -42,9 +41,6 @@ const lessonProgressSchema = new mongoose.Schema({
   },
 });
 
-const LessonProgressModel = mongoose.model(
-  'LessonProgressModel',
-  lessonProgressSchema
-);
+const LessonProgress = mongoose.model('LessonProgress', lessonProgressSchema);
 
-module.exports = LessonProgressModel;
+module.exports = LessonProgress;

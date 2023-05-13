@@ -20,10 +20,18 @@ const questionRouter = require('./routes/questionRoutes');
 const lessonRouter = require('./routes/lessonRoutes');
 const groupRouter = require('./routes/groupRoutes');
 const leagueRouter = require('./routes/leagueRoutes');
+const lessonProgressRouter = require('./routes/lessonProgressRoutes');
+const questionProgressRouter = require('./routes/questionProgressRoutes');
+const answerRouter = require('./routes/answerRouters');
 
 const app = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: 'http://localhost:3001',
+    credentials: true,
+  })
+);
 app.options('*', cors());
 
 app.use(helmet());
@@ -36,7 +44,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 const limiter = rateLimit({
-  max: 100,
+  max: 10000,
   windowMs: 60 * 60 * 1000,
   message: 'Too many requests from this IP, please try again in an hour!',
 });
@@ -61,6 +69,9 @@ app.use('/api/v1/questions', questionRouter);
 app.use('/api/v1/lessons', lessonRouter);
 app.use('/api/v1/groups', groupRouter);
 app.use('/api/v1/leagues', leagueRouter);
+app.use('/api/v1/answers', answerRouter);
+app.use('/api/v1/lesson-progress', lessonProgressRouter);
+app.use('/api/v1/question-progress', questionProgressRouter);
 
 app.all('*', (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));

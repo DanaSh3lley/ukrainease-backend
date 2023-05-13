@@ -19,26 +19,12 @@ const questionProgressSchema = new mongoose.Schema({
   answers: {
     type: [
       {
-        date: {
-          type: Date,
-          required: true,
-          default: Date.now,
-        },
-        correct: {
-          type: Boolean,
-          required: true,
-        },
-        receivedCoins: {
-          type: Number,
-          required: true,
-        },
-        receivedExperienceCoins: {
-          type: Number,
-          required: true,
-        },
+        type: mongoose.Schema.ObjectId,
+        ref: 'Answer',
+        required: true,
       },
     ],
-    required: false,
+    required: true,
   },
   nextReview: {
     type: Date,
@@ -46,9 +32,9 @@ const questionProgressSchema = new mongoose.Schema({
   },
 });
 
-const QuestionProgressModel = mongoose.model(
-  'QuestionProgressModel',
+const QuestionProgress = mongoose.model(
+  'QuestionProgress',
   questionProgressSchema
 );
 
-module.exports = QuestionProgressModel;
+module.exports = QuestionProgress;

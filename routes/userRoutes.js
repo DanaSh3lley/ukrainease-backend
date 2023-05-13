@@ -5,16 +5,15 @@ const authController = require('../controllers/authController');
 const router = express.Router();
 
 router.post('/signup', authController.signup);
-// Route for sending a verification email
+
 router.post('/verify-email', authController.sendVerification);
-// Route for verifying the email
-router.get('/verify-email/:token', authController.verifyEmail);
+router.route('/verify-email/:token').get(authController.verifyEmail);
 
 router.post('/login', authController.login);
 router.get('/logout', authController.logout);
 
-router.post('/forgotPassword', authController.forgotPassword);
-router.patch('/resetPassword/:token', authController.resetPassword);
+router.post('/forgot-password', authController.forgotPassword);
+router.patch('/reset-password/:token', authController.resetPassword);
 
 // Protect all routes after this middleware
 router.use(authController.protect);

@@ -12,6 +12,7 @@ const leagueSchema = new mongoose.Schema({
   icon: {
     type: String,
     required: true,
+    default: 'league.jpg',
   },
   groups: {
     type: [
