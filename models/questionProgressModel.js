@@ -14,21 +14,24 @@ const questionProgressSchema = new mongoose.Schema({
   status: {
     type: String,
     required: true,
-    enum: ['notFinished', 'finished', 'needReview', 'notStarted'],
+    enum: ['notOpened', 'notStarted', 'inProgress', 'completed', 'needReview'],
   },
-  answers: {
+  attempts: {
     type: [
       {
-        type: mongoose.Schema.ObjectId,
-        ref: 'Answer',
-        required: true,
+        userAnswer: String,
+        isCorrect: Boolean,
+        timestamp: Date,
+        percentageCorrect: Number,
+        coinsEarned: Number,
+        experiencePointsEarned: Number,
       },
     ],
     required: true,
   },
   nextReview: {
     type: Date,
-    required: false,
+    required: true,
   },
 });
 

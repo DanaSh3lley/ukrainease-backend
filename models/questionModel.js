@@ -5,21 +5,49 @@ const questionSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  questionType: [
-    {
-      type: mongoose.Schema.ObjectId,
-      ref: 'Type',
-      required: true,
-      default: [],
-    },
-  ],
-  options: {
-    type: [String],
+  type: {
+    type: String,
+    enum: [
+      'singleChoice',
+      'multipleChoice',
+      'trueFalse',
+      'fillBlank',
+      'shortAnswer',
+      'matching',
+      'card',
+    ],
     required: true,
   },
-  correctIndex: {
-    type: Number,
-    required: true,
+  options: {
+    type: [
+      {
+        text: {
+          type: String,
+          required: true,
+        },
+        isCorrect: {
+          type: Boolean,
+          required: true,
+          default: false,
+        },
+      },
+    ],
+    required: false,
+  },
+  matchingOptions: {
+    type: [
+      {
+        left: {
+          type: String,
+          required: true,
+        },
+        right: {
+          type: String,
+          required: true,
+        },
+      },
+    ],
+    required: false,
   },
   explanation: {
     type: String,
@@ -34,14 +62,6 @@ const questionSchema = new mongoose.Schema({
     required: true,
     min: 1,
     max: 5,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now,
   },
 });
 

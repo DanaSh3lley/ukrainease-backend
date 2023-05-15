@@ -23,6 +23,8 @@ const leagueRouter = require('./routes/leagueRoutes');
 const lessonProgressRouter = require('./routes/lessonProgressRoutes');
 const questionProgressRouter = require('./routes/questionProgressRoutes');
 const answerRouter = require('./routes/answerRouters');
+const userAwardRouter = require('./routes/userAwardRoutes');
+const userLeagueRouter = require('./routes/userLeagueRoutes');
 
 const app = express();
 
@@ -72,6 +74,8 @@ app.use('/api/v1/leagues', leagueRouter);
 app.use('/api/v1/answers', answerRouter);
 app.use('/api/v1/lesson-progress', lessonProgressRouter);
 app.use('/api/v1/question-progress', questionProgressRouter);
+app.use('/api/v1/user-award', userAwardRouter);
+app.use('/api/v1/user-league', userLeagueRouter);
 
 app.all('*', (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));

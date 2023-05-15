@@ -11,6 +11,15 @@ router
   .get(lessonController.getAllLessons)
   .post(authController.restrictTo('admin'), lessonController.createLesson);
 
+router.get('/current-user', lessonController.getLessonsForUser);
+router.get('/current-user/:lessonId', lessonController.getLessonByIdForUser);
+
+router.post('/:lessonId/start', lessonController.startLesson);
+router.post('/:lessonId/take', lessonController.takeLesson);
+router.post('/:lessonId/finish', lessonController.finishLesson);
+
+router.post('/submit-question', lessonController.submitQuestion);
+
 router
   .route('/:id')
   .get(lessonController.getLesson)

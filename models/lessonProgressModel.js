@@ -11,20 +11,39 @@ const lessonProgressSchema = new mongoose.Schema({
     ref: 'Lesson',
     required: true,
   },
+  opened: {
+    type: Boolean,
+    default: false,
+  }, // New field to indicate if the lesson is opened/purchased
   status: {
     type: String,
-    required: true,
-    enum: ['notFinished', 'finished', 'needReview', 'notStarted'],
+    enum: ['notStarted', 'inProgress', 'completed'],
+    default: 'notStarted',
   },
-  answers: {
+  attempts: {
     type: [
       {
-        type: mongoose.Schema.ObjectId,
-        ref: 'Answer',
-        required: true,
+        timestamp: {
+          type: Date,
+          required: true,
+          default: Date.now,
+        },
+        percentageCorrect: {
+          type: Number,
+          required: true,
+        },
+        coinsEarned: {
+          type: Number,
+          required: true,
+        },
+        experiencePointsEarned: {
+          type: Number,
+          required: true,
+        },
       },
     ],
     required: true,
+    default: [],
   },
   currentQuestion: {
     type: Number,
@@ -34,10 +53,13 @@ const lessonProgressSchema = new mongoose.Schema({
   nextReview: {
     type: Date,
     required: false,
+    default: Date.now(),
   },
-  createdAt: {
-    type: Date,
-    default: Date.now,
+  sessionQuestions: {
+    type: [mongoose.Schema.ObjectId],
+    ref: 'Question',
+    required: true,
+    default: [],
   },
 });
 

@@ -21,6 +21,11 @@ const lessonSchema = new mongoose.Schema({
     required: true,
     enum: ['grammar', 'vocabulary', 'typicalError'],
   },
+  theory: {
+    type: String,
+    required: true,
+    default: '',
+  },
   questions: {
     type: [
       {
@@ -49,6 +54,16 @@ const lessonSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true,
+  },
+});
+
+lessonSchema.virtual('progress', {
+  ref: 'LessonProgress',
+  localField: '_id',
+  foreignField: 'lesson',
+  justOne: true,
+  options: {
+    select: { status: 1, opened: 1 },
   },
 });
 
