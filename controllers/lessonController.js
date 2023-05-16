@@ -7,37 +7,161 @@ const AppError = require('../utils/appError');
 const QuestionProgress = require('../models/questionProgressModel');
 const Question = require('../models/questionModel');
 
-function getRandomIndexes(total, count) {
-  const indexes = new Set();
-  while (indexes.size < count) {
-    const randomIndex = Math.floor(Math.random() * total);
-    indexes.add(randomIndex);
+const shuffleArray = (array) => {
+  const shuffledArray = [...array];
+  for (let i = shuffledArray.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffledArray[i], shuffledArray[j]] = [shuffledArray[j], shuffledArray[i]];
   }
-  return Array.from(indexes);
-}
+  return shuffledArray;
+};
+
+const createSessionQuestions = async (
+  userId,
+  lessonId,
+  desiredQuestionCount
+) => {
+  // Retrieve the lesson
+  const lesson = await Lesson.findById(lessonId);
+
+  // Retrieve the user's question progress records for the lesson
+  const questionProgressRecords = await QuestionProgress.find({
+    user: userId,
+    question: { $in: lesson.questions },
+  });
+
+  // Filter the question progress records based on status and nextReview
+  const errorQuestions = questionProgressRecords
+    .filter((record) => record.status === 'error')
+    .map((el) => el.question);
+  const reviewQuestions = questionProgressRecords
+    .filter((record) => new Date(record.nextReview) < new Date())
+    .map((el) => el.question);
+
+  // Get the new questions directly from the lesson
+  const newQuestions = lesson.questions.filter(
+    (question) =>
+      !questionProgressRecords.some((record) =>
+        record.question.equals(question)
+      )
+  );
+
+  // Randomize the order of the filtered questions
+  const shuffledQuestions = [
+    ...shuffleArray(errorQuestions),
+    ...shuffleArray(reviewQuestions),
+    ...shuffleArray(newQuestions),
+  ];
+
+  // Select a subset of questions for the session
+  return shuffledQuestions
+    .slice(0, desiredQuestionCount)
+    .map((question) => question.toString());
+};
+
+const calculateNextReview = (questionProgress, correctAnswer, modifier = 1) => {
+  const { repetitionNumber, ease, nextReview, interval } = questionProgress;
+
+  let newInterval;
+  let newEase = ease;
+
+  if (repetitionNumber === 0) {
+    newInterval = 1;
+  } else {
+    newInterval = Math.ceil(interval * newEase * modifier);
+  }
+
+  // Calculate the new next review date
+  const currentDate = new Date();
+  const nextReviewDate = nextReview ? new Date(nextReview) : currentDate;
+
+  // Adjust repetition number and ease based on correct/incorrect answer
+  if (correctAnswer) {
+    newEase += 0.2; // Increase the ease factor for correct answers
+    questionProgress.repetitionNumber += 1;
+    questionProgress.status = 'review'; // Set status to 'review' for correct answers
+  } else {
+    newEase -= 0.2; // Decrease the ease factor for incorrect answers
+    questionProgress.repetitionNumber = 0; // Reset repetition number for incorrect answers
+    questionProgress.status = 'error'; // Set status to 'new' for incorrect answers
+    newInterval = 0; // Set interval to 0 for incorrect answers (review on the next day)
+  }
+
+  nextReviewDate.setDate(nextReviewDate.getDate() + newInterval);
+
+  // Determine status based on the calculated interval
+  if (newInterval > 21) {
+    questionProgress.status = 'mastered'; // Set status to 'mastered' for intervals longer than 7 days
+  } else if (newInterval > 1) {
+    questionProgress.status = 'review'; // Set status to 'review' for intervals longer than 1 day
+  }
+
+  // Clamp the new ease factor between a minimum and maximum value
+  const minimumEaseFactor = 1.3;
+  const maximumEaseFactor = 4;
+
+  if (newEase < minimumEaseFactor) {
+    newEase = minimumEaseFactor;
+  } else if (newEase > maximumEaseFactor) {
+    newEase = maximumEaseFactor;
+  }
+  questionProgress.ease = newEase;
+  questionProgress.interval = newInterval;
+  questionProgress.nextReview = nextReviewDate;
+
+  return questionProgress;
+};
+
+const setNextReviewDateForLessonProgress = async (userId, lessonId) => {
+  // Find all the question progress records for the lesson and the user
+  const questionProgressRecords = await QuestionProgress.find({
+    user: userId,
+    question: { $in: lessonId.questions }, // Retrieve question IDs associated with the lesson
+  });
+
+  // Get the smallest date value among the question progress records
+  const nextReviewDate = questionProgressRecords.reduce((minDate, record) => {
+    const recordDate = new Date(record.nextReview);
+    return recordDate < minDate ? recordDate : minDate;
+  }, Infinity);
+
+  // Find the lesson progress for the user and lesson
+  const lessonProgress = await LessonProgress.findOne({
+    user: userId,
+    lesson: lessonId,
+  });
+
+  // Set the next review date for the lesson progress
+  lessonProgress.nextReview = nextReviewDate;
+  await lessonProgress.save();
+};
 
 function validateUserAnswer(userAnswer, question) {
   const { type, options } = question;
 
   switch (type) {
     case 'singleChoice': {
-      const correctOption = options.find((option) => option.isCorrect);
-      return userAnswer === correctOption.text;
+      // const correctOption = options.find((option) => option.isCorrect);
+      // return userAnswer === correctOption.text;
+      return true;
     }
 
     case 'multipleChoice': {
-      const correctOptions = options.filter((option) => option.isCorrect);
-      return correctOptions.every((option) => userAnswer.includes(option.text));
+      // const correctOptions = options.filter((option) => option.isCorrect);
+      // return correctOptions.every((option) => userAnswer.includes(option.text));
+      return true;
     }
     case 'trueFalse': {
-      const correctOption = options.find((option) => option.isCorrect);
-      return userAnswer === correctOption.text;
+      // const correctOption = options.find((option) => option.isCorrect);
+      // return userAnswer === correctOption.text;
+      return true;
     }
     case 'fillBlank': {
-      const correctAnswers = options.map((option) => option.text.toLowerCase());
-      return correctAnswers.some((correctAnswer) =>
-        userAnswer.toLowerCase().includes(correctAnswer)
-      );
+      // const correctAnswers = options.map((option) => option.text.toLowerCase());
+      // return correctAnswers.some((correctAnswer) =>
+      //   userAnswer.toLowerCase().includes(correctAnswer)
+      // );
+      return true;
     }
 
     case 'shortAnswer': {
@@ -141,12 +265,7 @@ const startLesson = async (req, res, next) => {
   if (user.coins < requiredCoins) {
     return next(new AppError('Not enough coins to start the lesson', 400));
   }
-
-  const allQuestions = lesson.questions;
-  const randomIndexes = getRandomIndexes(allQuestions.length, 20);
-  const sessionQuestions = randomIndexes.map(
-    (index) => allQuestions[index]._id
-  );
+  const sessionQuestions = await createSessionQuestions(userId, lessonId, 20);
 
   const lessonProgress = await LessonProgress.create({
     user: userId,
@@ -197,30 +316,45 @@ const submitQuestion = async (req, res, next) => {
     return next(new AppError('Question not found', 404));
   }
 
-  const isCorrect = validateUserAnswer(userAnswer, question);
+  let questionProgress = await QuestionProgress.findOne({
+    user: req.user.id,
+    question: question._id,
+  });
 
-  const questionProgress = await QuestionProgress.findOneAndUpdate(
-    { user: req.user.id, question: question._id },
-    {
-      unshift: {
-        attempts: {
-          userAnswer,
-          isCorrect,
-          timestamp: Date.now(),
-          percentageCorrect: isCorrect ? 100 : 0,
-          coinsEarned: isCorrect ? 10 : 0,
-          experiencePointsEarned: isCorrect ? 20 : 0,
-        },
-      },
-      nextReview: new Date(2023, 5, 17),
-      status: 'completed',
-    },
-    { upsert: true, new: true }
+  if (questionProgress && new Date(questionProgress.nextReview) > new Date()) {
+    return next(new AppError('Question cannot be updated yet', 400));
+  }
+
+  if (!questionProgress) {
+    questionProgress = new QuestionProgress({
+      user: req.user.id,
+      question: question._id,
+      repetitionNumber: 0,
+      ease: 2.5,
+      nextReview: new Date(),
+      status: 'new',
+      interval: 0,
+    });
+  }
+
+  const isCorrect = validateUserAnswer(userAnswer, question);
+  const updatedQuestionProgress = calculateNextReview(
+    questionProgress,
+    isCorrect
   );
 
-  lessonProgress.currentQuestion += 1;
+  // Update the progress record
+  updatedQuestionProgress.attempts.unshift({
+    userAnswer,
+    isCorrect,
+    timestamp: Date.now(),
+    percentageCorrect: isCorrect ? 100 : 0,
+    coinsEarned: isCorrect ? 10 : 0,
+    experiencePointsEarned: isCorrect ? 20 : 0,
+  });
 
-  await Promise.all([questionProgress.save(), lessonProgress.save()]);
+  lessonProgress.currentQuestion += 1;
+  await Promise.all([updatedQuestionProgress.save(), lessonProgress.save()]);
 
   return res.status(200).json({
     message: isCorrect ? 'Correct answer' : 'Incorrect answer',
@@ -250,11 +384,8 @@ const takeLesson = async (req, res, next) => {
   let { sessionQuestions } = lessonProgress;
 
   if (lessonProgress.status === 'completed') {
-    const lesson = await Lesson.findById(lessonId);
-    const allQuestions = lesson.questions;
-    const randomIndexes = getRandomIndexes(allQuestions.length, 20);
-    sessionQuestions = randomIndexes.map((index) => allQuestions[index]._id);
     lessonProgress.status = 'inProgress';
+    sessionQuestions = await createSessionQuestions(userId, lessonId, 20);
     lessonProgress.sessionQuestions = sessionQuestions;
     await lessonProgress.save();
   }
@@ -297,6 +428,14 @@ const finishLesson = async (req, res, next) => {
 
   const totalQuestions = sessionQuestions.length;
 
+  if (totalQuestions === 0) {
+    if (lessonProgress.status !== 'completed') {
+      lessonProgress.status = 'completed';
+      lessonProgress.save();
+    }
+    return next(new AppError('Good job! Come back tomorrow!', 400));
+  }
+
   if (currentQuestion !== totalQuestions || status === 'completed') {
     return next(
       new AppError(
@@ -333,7 +472,7 @@ const finishLesson = async (req, res, next) => {
 
   const user = await User.findById(userId);
   user.coins += totalCoinsEarned;
-  user.experience += totalExperienceEarned;
+  user.experiencePoints += totalExperienceEarned;
   await user.save({ validateBeforeSave: false });
 
   lessonProgress.status = 'completed';
@@ -346,6 +485,8 @@ const finishLesson = async (req, res, next) => {
     coinsEarned: totalCoinsEarned,
     experiencePointsEarned: totalExperienceEarned,
   });
+
+  await setNextReviewDateForLessonProgress(userId, lesson);
 
   await lessonProgress.save();
 

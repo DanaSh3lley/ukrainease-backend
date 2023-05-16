@@ -14,7 +14,8 @@ const questionProgressSchema = new mongoose.Schema({
   status: {
     type: String,
     required: true,
-    enum: ['notOpened', 'notStarted', 'inProgress', 'completed', 'needReview'],
+    enum: ['error', 'new', 'review', 'mastered'],
+    default: 'new',
   },
   attempts: {
     type: [
@@ -29,10 +30,40 @@ const questionProgressSchema = new mongoose.Schema({
     ],
     required: true,
   },
+  repetitionNumber: {
+    type: Number,
+    required: true,
+    default: 0,
+  },
+  ease: {
+    type: Number,
+    required: true,
+    default: 2.5,
+  },
+  interval: {
+    type: Number,
+    required: true,
+    default: 1,
+  },
   nextReview: {
     type: Date,
     required: true,
   },
+});
+
+questionProgressSchema.path('nextReview').get((value) => {
+  if (value instanceof Date) {
+    return value.toISOString().split('T')[0];
+  }
+  return value;
+});
+
+// Define a setter for the 'nextReview' field to handle string input and convert it to a Date object
+questionProgressSchema.path('nextReview').set((value) => {
+  if (typeof value === 'string') {
+    return new Date(value);
+  }
+  return value;
 });
 
 const QuestionProgress = mongoose.model(
