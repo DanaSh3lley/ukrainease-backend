@@ -6,6 +6,10 @@ const User = require('../models/userModel');
 const AppError = require('../utils/appError');
 const QuestionProgress = require('../models/questionProgressModel');
 const Question = require('../models/questionModel');
+const {
+  assignExperiencePoints,
+  calculateCoinsEarned,
+} = require('../utils/levelService');
 
 const shuffleArray = (array) => {
   const shuffledArray = [...array];
@@ -58,6 +62,17 @@ const createSessionQuestions = async (
     .slice(0, desiredQuestionCount)
     .map((question) => question.toString());
 };
+
+function checkLessonAccess(user, lesson) {
+  const userLevel = user.level;
+  const requiredLevel = lesson.requiredLevel || 0;
+  console.log(userLevel, requiredLevel);
+
+  if (userLevel >= requiredLevel) {
+    return true; // User meets the level requirement
+  }
+  return false; // User does not meet the level requirement
+}
 
 const calculateNextReview = (questionProgress, correctAnswer, modifier = 1) => {
   const { repetitionNumber, ease, nextReview, interval } = questionProgress;
@@ -137,7 +152,7 @@ const setNextReviewDateForLessonProgress = async (userId, lessonId) => {
 };
 
 function validateUserAnswer(userAnswer, question) {
-  const { type, options } = question;
+  const { type /*options*/ } = question;
 
   switch (type) {
     case 'singleChoice': {
@@ -258,6 +273,13 @@ const startLesson = async (req, res, next) => {
 
   if (existingProgress) {
     return next(new AppError('User has already started this lesson', 400));
+  }
+
+  const isAccessed = checkLessonAccess(user, lesson);
+  if (!isAccessed) {
+    return next(
+      new AppError('For opening this lesson, you need  higher level', 400)
+    );
   }
 
   const requiredCoins = lesson.baseCoins * 4;
@@ -471,8 +493,8 @@ const finishLesson = async (req, res, next) => {
   }));
 
   const user = await User.findById(userId);
-  user.coins += totalCoinsEarned;
-  user.experiencePoints += totalExperienceEarned;
+  calculateCoinsEarned(user, totalCoinsEarned);
+  await assignExperiencePoints(user, totalCoinsEarned);
   await user.save({ validateBeforeSave: false });
 
   lessonProgress.status = 'completed';

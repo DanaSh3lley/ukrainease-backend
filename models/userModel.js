@@ -22,7 +22,7 @@ const userSchema = new mongoose.Schema(
     },
     experiencePoints: {
       type: Number,
-      default: 10,
+      default: 0,
     },
     level: {
       type: Number,

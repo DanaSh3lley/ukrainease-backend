@@ -51,6 +51,11 @@ const lessonSchema = new mongoose.Schema({
     max: 3,
     min: 1,
   },
+  requiredLevel: {
+    type: Number,
+    required: true,
+    default: 1,
+  },
   isActive: {
     type: Boolean,
     default: true,
