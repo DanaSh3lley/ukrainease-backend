@@ -5,6 +5,8 @@ const User = require('../models/userModel');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const Email = require('../utils/email');
+const Group = require('../models/groupModel');
+const League = require('../models/leagueModel');
 
 const frontendUrl = process.env.FRONTEND_URL;
 
@@ -36,15 +38,39 @@ const createSendToken = (user, statusCode, req, res) => {
 };
 
 exports.signup = catchAsync(async (req, res, next) => {
+  // Retrieve the league document
+  const league = await League.findOne({ level: 1 }).populate('groups'); // Modify this query to retrieve the desired league
+
+  // Find the first group within the league with fewer than 10 users
+  let firstGroup = league.groups.find((group) => group.users.length < 10);
+
+  // If no group with fewer than 10 users is found, create a new group and assign the user to it
+  if (!firstGroup) {
+    const groupCount = league.groups.length; // Get the total count of existing groups
+
+    firstGroup = await Group.create({
+      name: `${league.name}-group-${groupCount + 1}`, // Auto-generate the group name using the league name and the number of the group
+      users: [], // Initialize the users array with an empty array
+    });
+
+    league.groups.push(firstGroup);
+    await league.save();
+  }
+
   const newUser = await User.create({
     name: req.body.name,
     email: req.body.email,
     password: req.body.password,
     passwordConfirm: req.body.passwordConfirm,
+    league: league._id,
   });
 
-  const url = `${req.protocol}://${req.get('host')}/me`;
-  await new Email(newUser, url).sendWelcome();
+  // Assign the user to the first group
+  firstGroup.users.push(newUser._id); // Assuming `users` is the field in the group schema representing the array of user IDs
+  await firstGroup.save();
+
+  // const url = `${req.protocol}://${req.get('host')}/me`;
+  // await new Email(newUser, url).sendWelcome();
 
   createSendToken(newUser, 201, req, res);
 });

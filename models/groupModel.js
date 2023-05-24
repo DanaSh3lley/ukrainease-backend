@@ -8,29 +8,12 @@ const groupSchema = new mongoose.Schema({
     minLength: 4,
   },
   users: {
-    type: [
-      {
-        type: [mongoose.Schema.ObjectId],
-        ref: 'User',
-        required: true,
-      },
-    ],
+    type: [mongoose.Schema.ObjectId],
+    ref: 'User',
     required: true,
-  },
-  description: {
-    type: String,
-    required: false,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now,
+    default: [],
   },
 });
-
 const Group = mongoose.model('Group', groupSchema);
 
 module.exports = Group;

@@ -15,18 +15,16 @@ const globalErrorHandler = require('./controllers/errorController');
 
 const userRouter = require('./routes/userRoutes');
 const awardRouter = require('./routes/awardRoutes');
-const typeRouter = require('./routes/typeRoutes');
 const questionRouter = require('./routes/questionRoutes');
 const lessonRouter = require('./routes/lessonRoutes');
 const groupRouter = require('./routes/groupRoutes');
 const leagueRouter = require('./routes/leagueRoutes');
 const lessonProgressRouter = require('./routes/lessonProgressRoutes');
 const questionProgressRouter = require('./routes/questionProgressRoutes');
-const answerRouter = require('./routes/answerRouters');
 const userAwardRouter = require('./routes/userAwardRoutes');
-const userLeagueRouter = require('./routes/userLeagueRoutes');
 const notificationRouter = require('./routes/notificationRoutes');
 const levelHistoryRouter = require('./routes/levelHistoryRoutes');
+const dailyExperienceRouter = require('./routes/dailyExperienceRouters');
 
 const app = express();
 
@@ -68,18 +66,16 @@ app.use(compression());
 // 3) ROUTES
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/awards', awardRouter);
-app.use('/api/v1/types', typeRouter);
 app.use('/api/v1/questions', questionRouter);
 app.use('/api/v1/lessons', lessonRouter);
 app.use('/api/v1/groups', groupRouter);
 app.use('/api/v1/leagues', leagueRouter);
-app.use('/api/v1/answers', answerRouter);
 app.use('/api/v1/lesson-progress', lessonProgressRouter);
 app.use('/api/v1/question-progress', questionProgressRouter);
 app.use('/api/v1/user-award', userAwardRouter);
-app.use('/api/v1/user-league', userLeagueRouter);
 app.use('/api/v1/notifications', notificationRouter);
 app.use('/api/v1/level-histories', levelHistoryRouter);
+app.use('/api/v1/daily-experience', dailyExperienceRouter);
 
 app.all('*', (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));

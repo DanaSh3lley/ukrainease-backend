@@ -15,13 +15,13 @@ const leagueSchema = new mongoose.Schema({
     default: 'league.jpg',
   },
   groups: {
-    type: [
-      {
-        type: mongoose.Schema.ObjectId,
-        ref: 'Group',
-        required: true,
-      },
-    ],
+    type: [mongoose.Schema.ObjectId],
+    ref: 'Group',
+    required: true,
+    default: [],
+  },
+  level: {
+    type: Number,
     required: true,
   },
 });

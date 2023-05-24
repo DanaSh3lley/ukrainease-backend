@@ -52,9 +52,11 @@ const createSessionQuestions = async (
 
   // Randomize the order of the filtered questions
   const shuffledQuestions = [
-    ...shuffleArray(errorQuestions),
-    ...shuffleArray(reviewQuestions),
-    ...shuffleArray(newQuestions),
+    ...new Set([
+      ...shuffleArray(errorQuestions),
+      ...shuffleArray(reviewQuestions),
+      ...shuffleArray(newQuestions),
+    ]),
   ];
 
   // Select a subset of questions for the session
@@ -103,7 +105,7 @@ const calculateNextReview = (questionProgress, correctAnswer, modifier = 1) => {
   }
 
   nextReviewDate.setDate(nextReviewDate.getDate() + newInterval);
-
+  console.log(nextReviewDate, newInterval, currentDate.getDate());
   // Determine status based on the calculated interval
   if (newInterval > 21) {
     questionProgress.status = 'mastered'; // Set status to 'mastered' for intervals longer than 7 days
@@ -158,37 +160,37 @@ function validateUserAnswer(userAnswer, question) {
     case 'singleChoice': {
       // const correctOption = options.find((option) => option.isCorrect);
       // return userAnswer === correctOption.text;
-      return true;
+      return !Math.round(Math.random());
     }
 
     case 'multipleChoice': {
       // const correctOptions = options.filter((option) => option.isCorrect);
       // return correctOptions.every((option) => userAnswer.includes(option.text));
-      return true;
+      return !Math.round(Math.random());
     }
     case 'trueFalse': {
       // const correctOption = options.find((option) => option.isCorrect);
       // return userAnswer === correctOption.text;
-      return true;
+      return !Math.round(Math.random());
     }
     case 'fillBlank': {
       // const correctAnswers = options.map((option) => option.text.toLowerCase());
       // return correctAnswers.some((correctAnswer) =>
       //   userAnswer.toLowerCase().includes(correctAnswer)
       // );
-      return true;
+      return !Math.round(Math.random());
     }
 
     case 'shortAnswer': {
-      return true;
+      return !Math.round(Math.random());
     }
 
     case 'matching': {
-      return true;
+      return !Math.round(Math.random());
     }
 
     case 'card': {
-      return true;
+      return !Math.round(Math.random());
     }
 
     default: {
@@ -344,6 +346,7 @@ const submitQuestion = async (req, res, next) => {
   });
 
   if (questionProgress && new Date(questionProgress.nextReview) > new Date()) {
+    // console.log(questionProgress, questionProgress.nextReview, new Date());
     return next(new AppError('Question cannot be updated yet', 400));
   }
 

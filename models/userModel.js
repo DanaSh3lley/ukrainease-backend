@@ -37,6 +37,11 @@ const userSchema = new mongoose.Schema(
       enum: ['user', 'admin'],
       default: 'user',
     },
+    league: {
+      type: mongoose.Schema.ObjectId,
+      ref: 'League',
+      required: false,
+    },
     password: {
       type: String,
       required: [true, 'Please provide a password'],

@@ -6,6 +6,9 @@ const router = express.Router();
 
 router.use(authController.protect);
 
+router.route('/distribute').post(leagueController.distributeUsersToGroups);
+router.route('/move-users').post(leagueController.moveUsersBetweenLeagues);
+
 router
   .route('/')
   .get(leagueController.getAllLeagues)
