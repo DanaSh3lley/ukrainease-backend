@@ -1,65 +1,48 @@
 const mongoose = require('mongoose');
+const CriteriaTypes = require('../utils/criteriaTypes');
 
-const awardSchema = new mongoose.Schema({
+const LevelSchema = new mongoose.Schema({
+  level: {
+    type: Number,
+    required: true,
+  },
+  targetQuantity: {
+    type: Number,
+    required: true,
+  },
+});
+
+const AwardSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
-    maxLength: 40,
-    minLength: 6,
-    unique: true,
   },
   description: {
     type: String,
     required: true,
-    maxlength: 140,
-    minLength: 10,
   },
   icon: {
     type: String,
     required: true,
-    validate: {
-      validator: function (value) {
-        return /\.(jpg|jpeg|png|gif)$/.test(value);
-      },
-      message: (props) => `${props.value} is not a valid image file format!`,
-    },
-  },
-  coins: {
-    type: Number,
-    required: true,
-    min: 0,
   },
   experiencePoints: {
     type: Number,
     required: true,
-    min: 0,
   },
-  isActive: {
-    type: Boolean,
-    required: true,
-    default: true,
-  },
-  level: {
+  coins: {
     type: Number,
     required: true,
-    min: 1,
-    max: 5,
   },
-  category: {
-    type: String,
-    required: true,
-    enum: ['Grammar', 'Vocabulary', 'Typical Error', 'Holiday', 'Other'],
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now,
+  criteria: {
+    type: {
+      type: String,
+      enum: Object.values(CriteriaTypes),
+      required: true,
+    },
+    levels: [LevelSchema],
   },
 });
 
-const Award = mongoose.model('Award', awardSchema);
+const Award = mongoose.model('Award', AwardSchema);
 
 module.exports = Award;

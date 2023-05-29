@@ -10,6 +10,12 @@ const {
   assignExperiencePoints,
   calculateCoinsEarned,
 } = require('../utils/levelService');
+const {
+  incrementUserProgress,
+  checkAwardAchievement,
+} = require('../utils/progressTracker');
+const Award = require('../models/awardModel');
+const CriteriaTypes = require('../utils/criteriaTypes');
 
 const shuffleArray = (array) => {
   const shuffledArray = [...array];
@@ -346,7 +352,6 @@ const submitQuestion = async (req, res, next) => {
   });
 
   if (questionProgress && new Date(questionProgress.nextReview) > new Date()) {
-    // console.log(questionProgress, questionProgress.nextReview, new Date());
     return next(new AppError('Question cannot be updated yet', 400));
   }
 
@@ -368,7 +373,6 @@ const submitQuestion = async (req, res, next) => {
     isCorrect
   );
 
-  // Update the progress record
   updatedQuestionProgress.attempts.unshift({
     userAnswer,
     isCorrect,
@@ -379,6 +383,24 @@ const submitQuestion = async (req, res, next) => {
   });
 
   lessonProgress.currentQuestion += 1;
+  const award = await Award.findOne({
+    'criteria.type': CriteriaTypes.QUESTIONS_ANSWERED,
+  });
+  if (award) {
+    await incrementUserProgress(
+      userId,
+      award._id,
+      CriteriaTypes.QUESTIONS_ANSWERED
+    );
+    await checkAwardAchievement(
+      userId,
+      award._id,
+      CriteriaTypes.QUESTIONS_ANSWERED
+    );
+  } else {
+    return new AppError('award not found', 404);
+  }
+
   await Promise.all([updatedQuestionProgress.save(), lessonProgress.save()]);
 
   return res.status(200).json({

@@ -1,4 +1,4 @@
-const Notification = require('../models/NotificationModel');
+const Notification = require('../models/notificationModel');
 const LevelHistory = require('../models/levelHistoryModel');
 const DailyExperience = require('../models/dailyExperienceModel');
 

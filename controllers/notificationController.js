@@ -1,4 +1,4 @@
-const Notification = require('../models/NotificationModel');
+const Notification = require('../models/notificationModel');
 const factory = require('./handlerFactory');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
