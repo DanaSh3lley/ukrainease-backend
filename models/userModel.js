@@ -28,6 +28,10 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 1,
     },
+    streak: {
+      type: Number,
+      default: 0,
+    },
     photo: {
       type: String,
       default: 'default.jpg',

@@ -25,6 +25,7 @@ const userAwardRouter = require('./routes/userAwardRoutes');
 const notificationRouter = require('./routes/notificationRoutes');
 const levelHistoryRouter = require('./routes/levelHistoryRoutes');
 const dailyExperienceRouter = require('./routes/dailyExperienceRouters');
+const { scheduleStreak } = require('./utils/streakTasks');
 
 const app = express();
 
@@ -62,6 +63,7 @@ app.use(xss());
 app.use(hpp({ whitelist: [] }));
 
 app.use(compression());
+scheduleStreak();
 
 // 3) ROUTES
 app.use('/api/v1/users', userRouter);

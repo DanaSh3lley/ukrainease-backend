@@ -21,11 +21,11 @@ exports.getAwardsWithCompletionStatus = catchAsync(async (req, res, next) => {
       const userProgress = await UserProgress.findOne({
         user: userId,
         award: awardId,
-      });
+      }).populate('award');
 
       // Define the status object for the award
       const awardStatus = {
-        award: award.name,
+        award: award,
         status: [],
       };
 
