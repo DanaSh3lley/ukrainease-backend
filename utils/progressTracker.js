@@ -2,6 +2,11 @@ const UserProgress = require('../models/userProgressModel');
 const User = require('../models/userModel');
 const Notification = require('../models/notificationModel');
 const catchAsync = require('./catchAsync');
+const {
+  assignEarnings,
+  increaseCoins,
+  calculateCoefficient,
+} = require('./levelService');
 
 const incrementUserProgress = async (
   userId,
@@ -47,7 +52,7 @@ const checkAwardAchievement = async (userId, awardId, criteriaType) => {
       criteriaType,
       level: initialLevel,
       currentCount: initialCount,
-    });
+    }).populate('award');
 
     await userProgress.save();
   }
@@ -91,8 +96,11 @@ const checkAwardAchievement = async (userId, awardId, criteriaType) => {
         const experiencePointsEarned = award.experiencePoints;
 
         const user = await User.findById(userId);
-        user.coins += coinsEarned;
-        user.experiencePoints += experiencePointsEarned;
+        await assignEarnings(user, coinsEarned);
+        increaseCoins(user, experiencePointsEarned);
+        const coefficient = await calculateCoefficient(user);
+        user.coinEarningCoefficient = coefficient;
+        user.experienceEarningCoefficient = coefficient;
         await user.save({ validateBeforeSave: false });
 
         return true;

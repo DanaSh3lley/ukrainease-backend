@@ -1,6 +1,7 @@
 const DailyExperience = require('../models/dailyExperienceModel');
 const User = require('../models/userModel');
 const catchAsync = require('../utils/catchAsync');
+const { calculateCoefficient } = require('../utils/levelService');
 
 exports.calculateStreak = catchAsync(async (userId) => {
   const currentDate = new Date();
@@ -19,6 +20,8 @@ exports.calculateStreak = catchAsync(async (userId) => {
   } else {
     user.streak = 0;
   }
-
+  const coefficient = await calculateCoefficient(user);
+  user.coinEarningCoefficient = coefficient;
+  user.experienceEarningCoefficient = coefficient;
   await user.save({ validateBeforeSave: false });
 });

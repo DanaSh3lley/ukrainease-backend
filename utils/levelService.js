@@ -1,14 +1,51 @@
 const Notification = require('../models/notificationModel');
 const LevelHistory = require('../models/levelHistoryModel');
 const DailyExperience = require('../models/dailyExperienceModel');
+const { levelThresholds } = require('./level');
+const UserProgress = require('../models/userProgressModel');
+const League = require('../models/leagueModel');
 
-const levelThresholds = [0, 100, 250, 500, 1000];
-const coinEarningCoefficients = {
-  1: 1.0,
-  2: 1.2,
-  3: 1.5,
-  4: 2.0,
+const increaseCoins = (user, amount) => {
+  const earnedCoins = Math.round(amount * user.coinEarningCoefficient);
+  user.coins += earnedCoins;
+  return earnedCoins;
 };
+
+const increaseExperiencePoints = (user, amount) => {
+  const earnedPoints = Math.round(amount * user.experienceEarningCoefficient);
+  user.experiencePoints += earnedPoints;
+  return earnedPoints;
+};
+
+async function calculateCoefficient(user) {
+  let coefficient = 1.0;
+
+  // Calculate level coefficient
+  const levelCoefficient = user.level * 0.05;
+  coefficient += levelCoefficient;
+
+  // Calculate league coefficient (replace 'user.league' with the actual property representing the user's league)
+  const league = await League.findById(user.league);
+  if (league) {
+    const leagueCoefficient = league.level * 0.05;
+    coefficient += leagueCoefficient;
+  }
+
+  // Calculate streak coefficient (replace 'user.streak' with the actual property representing the user's streak)
+  const streakCoefficient = user.streak * 0.2;
+  coefficient += streakCoefficient;
+
+  // Calculate award coefficient
+  const userProgress = await UserProgress.find({ user: user._id }).populate(
+    'award'
+  );
+  const awardCoefficients = userProgress.map(
+    (progress) => progress.level * 0.005
+  );
+  coefficient += awardCoefficients.reduce((acc, val) => acc + val, 0);
+
+  return coefficient;
+}
 
 function calculateUserLevel(experiencePoints) {
   let level = 1;
@@ -22,10 +59,10 @@ function calculateUserLevel(experiencePoints) {
   return level;
 }
 
-async function assignExperiencePoints(user, pointsEarned) {
+async function assignEarnings(user, pointsEarned) {
   const currentDate = new Date().toISOString().slice(0, 10); // Get the current date in YYYY-MM-DD format
 
-  user.experiencePoints += pointsEarned;
+  const experience = increaseExperiencePoints(user, pointsEarned);
 
   const startOfDay = new Date(currentDate).setHours(0, 0, 0);
   const endOfDay = new Date(currentDate).setHours(23, 59, 59);
@@ -40,14 +77,14 @@ async function assignExperiencePoints(user, pointsEarned) {
 
   if (dailyExperienceEntry) {
     // If an entry exists, update the experience points for the current date
-    dailyExperienceEntry.points += pointsEarned;
+    dailyExperienceEntry.points += experience;
     await dailyExperienceEntry.save();
   } else {
     // If no entry exists, create a new entry for the current date
     const newDailyExperienceEntry = new DailyExperience({
       user: user._id,
       date: new Date(currentDate),
-      points: pointsEarned,
+      points: experience,
     });
     await newDailyExperienceEntry.save();
   }
@@ -58,6 +95,9 @@ async function assignExperiencePoints(user, pointsEarned) {
   if (user.level !== userLevel) {
     // If the user's level has changed, perform level-up actions
     user.level = userLevel;
+    const coefficient = await calculateCoefficient(user);
+    user.coinEarningCoefficient = coefficient;
+    user.experienceEarningCoefficient = coefficient;
 
     const notification = new Notification({
       recipient: user._id,
@@ -77,13 +117,9 @@ async function assignExperiencePoints(user, pointsEarned) {
   }
 }
 
-function calculateCoinsEarned(user, lessonCompletion) {
-  const earningCoefficient = coinEarningCoefficients[user.level] || 0;
-  user.coins += Math.round(earningCoefficient * lessonCompletion);
-}
-
 module.exports = {
-  // calculateUserLevel,
-  assignExperiencePoints,
-  calculateCoinsEarned,
+  assignEarnings,
+  increaseCoins,
+  increaseExperiencePoints,
+  calculateCoefficient,
 };

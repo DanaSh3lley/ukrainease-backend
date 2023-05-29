@@ -6,10 +6,7 @@ const User = require('../models/userModel');
 const AppError = require('../utils/appError');
 const QuestionProgress = require('../models/questionProgressModel');
 const Question = require('../models/questionModel');
-const {
-  assignExperiencePoints,
-  calculateCoinsEarned,
-} = require('../utils/levelService');
+const { assignEarnings, increaseCoins } = require('../utils/levelService');
 const {
   incrementUserProgress,
   checkAwardAchievement,
@@ -74,12 +71,9 @@ const createSessionQuestions = async (
 function checkLessonAccess(user, lesson) {
   const userLevel = user.level;
   const requiredLevel = lesson.requiredLevel || 0;
-  console.log(userLevel, requiredLevel);
 
-  if (userLevel >= requiredLevel) {
-    return true; // User meets the level requirement
-  }
-  return false; // User does not meet the level requirement
+  return userLevel >= requiredLevel;
+  // User does not meet the level requirement
 }
 
 const calculateNextReview = (questionProgress, correctAnswer, modifier = 1) => {
@@ -111,7 +105,6 @@ const calculateNextReview = (questionProgress, correctAnswer, modifier = 1) => {
   }
 
   nextReviewDate.setDate(nextReviewDate.getDate() + newInterval);
-  console.log(nextReviewDate, newInterval, currentDate.getDate());
   // Determine status based on the calculated interval
   if (newInterval > 21) {
     questionProgress.status = 'mastered'; // Set status to 'mastered' for intervals longer than 7 days
@@ -518,8 +511,9 @@ const finishLesson = async (req, res, next) => {
   }));
 
   const user = await User.findById(userId);
-  calculateCoinsEarned(user, totalCoinsEarned);
-  await assignExperiencePoints(user, totalCoinsEarned);
+
+  await assignEarnings(user, totalExperienceEarned);
+  increaseCoins(user, totalCoinsEarned);
   await user.save({ validateBeforeSave: false });
 
   lessonProgress.status = 'completed';

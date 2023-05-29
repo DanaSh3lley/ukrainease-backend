@@ -24,6 +24,14 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    coinEarningCoefficient: {
+      type: Number,
+      default: 1.0,
+    },
+    experienceEarningCoefficient: {
+      type: Number,
+      default: 1.0,
+    },
     level: {
       type: Number,
       default: 1,
