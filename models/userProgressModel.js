@@ -25,6 +25,18 @@ const UserProgressSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  history: [
+    {
+      level: {
+        type: Number,
+        required: true,
+      },
+      achievedDate: {
+        type: Date,
+        default: null,
+      },
+    },
+  ],
 });
 
 const UserProgress = mongoose.model('UserProgress', UserProgressSchema);

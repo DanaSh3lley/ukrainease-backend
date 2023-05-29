@@ -1,9 +1,7 @@
 const UserProgress = require('../models/userProgressModel');
 const User = require('../models/userModel');
 const Notification = require('../models/notificationModel');
-const Award = require('../models/awardModel');
 const catchAsync = require('./catchAsync');
-const AppError = require('./appError');
 
 const incrementUserProgress = async (
   userId,
@@ -40,8 +38,6 @@ const checkAwardAchievement = async (userId, awardId, criteriaType) => {
   }).populate('award');
 
   if (!userProgress) {
-    const award = await Award.findById(awardId);
-
     const initialLevel = 0;
     const initialCount = 0;
 
@@ -59,7 +55,9 @@ const checkAwardAchievement = async (userId, awardId, criteriaType) => {
   const awardLevels = userProgress.award.criteria.levels;
   const currentLevel = userProgress.level;
 
-  const level = awardLevels.find((l) => l.level === currentLevel);
+  const level = awardLevels.find(
+    (l) => l.level === currentLevel || currentLevel === 0
+  );
   if (!level) {
     return false;
   }
@@ -73,8 +71,12 @@ const checkAwardAchievement = async (userId, awardId, criteriaType) => {
       const nextTargetQuantity = nextLevel.targetQuantity;
 
       if (userProgress.currentCount >= nextTargetQuantity) {
+        userProgress.history.push({
+          level: userProgress.level,
+          achievedDate: Date.now(),
+        });
         userProgress.level += 1;
-        await userProgress.save({ validateBeforeSave: false });
+        await userProgress.save();
 
         const notification = new Notification({
           recipient: userId,
