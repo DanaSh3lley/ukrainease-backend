@@ -19,14 +19,14 @@ router.patch('/reset-password/:token', authController.resetPassword);
 router.use(authController.protect);
 
 router.patch('/updateMyPassword', authController.updatePassword);
-router.get('/me', userController.getMe, userController.getUser);
+router.get('/profile', userController.getMe, userController.getUser);
 router.patch(
-  '/updateMe',
+  '/update-profile',
   userController.uploadUserPhoto,
   userController.resizeUserPhoto,
   userController.updateMe
 );
-router.delete('/deleteMe', userController.deleteMe);
+router.delete('/delete-profile', userController.deleteMe);
 
 router
   .route('/')

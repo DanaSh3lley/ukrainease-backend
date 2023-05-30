@@ -67,20 +67,17 @@ exports.getOne = (Model, popOptions) =>
 
 exports.getAll = (Model) =>
   catchAsync(async (req, res, next) => {
-    // To allow for nested GET reviews on tour (hack)
     let filter = {};
-    if (req.params.tourId) filter = { tour: req.params.tourId };
+    if (req.params._id) filter = { obj: req.params._id };
 
     const features = new APIFeatures(Model.find(filter), req.query)
       .filter()
       .sort()
       .limitFields()
       .paginate();
-    // const doc = await features.query.explain();
     const doc = await features.query;
-    const total = await Model.count();
+    const total = await Model.countDocuments(filter);
 
-    // SEND RESPONSE
     res.status(200).json({
       status: 'success',
       results: doc.length,

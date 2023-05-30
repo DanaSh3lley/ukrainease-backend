@@ -7,24 +7,30 @@ const AppError = require('../utils/appError');
 const Email = require('../utils/email');
 const Group = require('../models/groupModel');
 const League = require('../models/leagueModel');
+const {
+  JWT_SECRET,
+  JWT_EXPIRES_IN,
+  FRONTEND_URL,
+  JWT_COOKIE_EXPIRES_IN,
+} = require('../config');
 
-const frontendUrl = process.env.FRONTEND_URL;
-
-const signToken = (id) =>
-  jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN,
+const signToken = (userId) =>
+  jwt.sign({ id: userId }, JWT_SECRET, {
+    expiresIn: JWT_EXPIRES_IN,
   });
+
+const setTokenCookie = (res, token, req) => {
+  res.cookie('jwt', token, {
+    expires: new Date(Date.now() + JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000),
+    httpOnly: true,
+    secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
+  });
+};
 
 const createSendToken = (user, statusCode, req, res) => {
   const token = signToken(user._id);
 
-  res.cookie('jwt', token, {
-    expires: new Date(
-      Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
-    ),
-    httpOnly: true,
-    secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
-  });
+  setTokenCookie(res, token, req);
 
   user.password = undefined;
 
@@ -37,24 +43,35 @@ const createSendToken = (user, statusCode, req, res) => {
   });
 };
 
+const findGroupWithLessThanTenUsers = (league) =>
+  league.groups.find((group) => group.users.length < 10);
+
+const createNewGroup = async (league) => {
+  const groupCount = league.groups.length;
+
+  const newGroup = await Group.create({
+    name: `${league.name}-group-${groupCount + 1}`,
+    users: [],
+  });
+
+  league.groups.push(newGroup);
+  await league.save();
+
+  return newGroup;
+};
+
+const sendWelcomeEmail = async (user, req) => {
+  const url = `${req.protocol}://${req.get('host')}/me`;
+  await new Email(user, url).sendWelcome();
+};
+
 exports.signup = catchAsync(async (req, res, next) => {
-  // Retrieve the league document
-  const league = await League.findOne({ level: 1 }).populate('groups'); // Modify this query to retrieve the desired league
+  const league = await League.findOne({ level: 1 }).populate('groups');
 
-  // Find the first group within the league with fewer than 10 users
-  let firstGroup = league.groups.find((group) => group.users.length < 10);
+  let firstGroup = findGroupWithLessThanTenUsers(league);
 
-  // If no group with fewer than 10 users is found, create a new group and assign the user to it
   if (!firstGroup) {
-    const groupCount = league.groups.length; // Get the total count of existing groups
-
-    firstGroup = await Group.create({
-      name: `${league.name}-group-${groupCount + 1}`, // Auto-generate the group name using the league name and the number of the group
-      users: [], // Initialize the users array with an empty array
-    });
-
-    league.groups.push(firstGroup);
-    await league.save();
+    firstGroup = await createNewGroup(league);
   }
 
   const newUser = await User.create({
@@ -65,12 +82,10 @@ exports.signup = catchAsync(async (req, res, next) => {
     league: league._id,
   });
 
-  // Assign the user to the first group
-  firstGroup.users.push(newUser._id); // Assuming `users` is the field in the group schema representing the array of user IDs
+  firstGroup.users.push(newUser._id);
   await firstGroup.save();
 
-  // const url = `${req.protocol}://${req.get('host')}/me`;
-  // await new Email(newUser, url).sendWelcome();
+  await sendWelcomeEmail(newUser, req);
 
   createSendToken(newUser, 201, req, res);
 });
@@ -98,16 +113,25 @@ exports.logout = (req, res) => {
   res.status(200).json({ status: 'success' });
 };
 
-exports.protect = catchAsync(async (req, res, next) => {
-  let token;
+const extractTokenFromRequest = (req) => {
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith('Bearer')
   ) {
-    token = req.headers.authorization.split(' ')[1];
-  } else if (req.cookies.jwt) {
-    token = req.cookies.jwt;
+    return req.headers.authorization.split(' ')[1];
   }
+  if (req.cookies.jwt) {
+    return req.cookies.jwt;
+  }
+
+  return null;
+};
+
+const verifyToken = async (token) =>
+  promisify(jwt.verify)(token, process.env.JWT_SECRET);
+
+exports.protect = catchAsync(async (req, res, next) => {
+  const token = extractTokenFromRequest(req);
 
   if (!token) {
     return next(
@@ -115,7 +139,7 @@ exports.protect = catchAsync(async (req, res, next) => {
     );
   }
 
-  const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+  const decoded = await verifyToken(token);
 
   const currentUser = await User.findById(decoded.id);
   if (!currentUser) {
@@ -138,20 +162,13 @@ exports.protect = catchAsync(async (req, res, next) => {
   next();
 });
 
-exports.isLoggedIn = async (req, res, next) => {
+exports.isLoggedIn = catchAsync(async (req, res, next) => {
   if (req.cookies.jwt) {
     try {
-      const decoded = await promisify(jwt.verify)(
-        req.cookies.jwt,
-        process.env.JWT_SECRET
-      );
+      const decoded = await verifyToken(req.cookies.jwt);
 
       const currentUser = await User.findById(decoded.id);
-      if (!currentUser) {
-        return next();
-      }
-
-      if (currentUser.changedPasswordAfter(decoded.iat)) {
+      if (!currentUser || currentUser.changedPasswordAfter(decoded.iat)) {
         return next();
       }
 
@@ -161,8 +178,9 @@ exports.isLoggedIn = async (req, res, next) => {
       return next();
     }
   }
+
   next();
-};
+});
 
 exports.restrictTo =
   (...roles) =>
@@ -176,19 +194,35 @@ exports.restrictTo =
     next();
   };
 
+const createEmailVerificationToken = () => {
+  const token = crypto.randomBytes(32).toString('hex');
+  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+  const expires = Date.now() + 10 * 60 * 1000;
+
+  return {
+    token,
+    hashedToken,
+    expires,
+  };
+};
+
 exports.sendVerification = catchAsync(async (req, res, next) => {
   const user = await User.findOne({ email: req.body.email });
 
   if (!user) {
-    return next(new AppError('There is no user with email address.', 404));
+    return next(new AppError('There is no user with that email address.', 404));
   }
 
-  const token = user.createEmailVerificationToken();
-  await user.save({ validateBeforeSave: false });
+  const { token, hashedToken, expires } = createEmailVerificationToken();
+
+  user.emailVerificationToken = hashedToken;
+  user.emailVerificationExpires = expires;
+
+  const url = `${FRONTEND_URL}/verify-email/${token}`;
 
   try {
-    const url = `${frontendUrl}/verify-email/${token}`;
-    await new Email(user, url).sendEmailVerification();
+    await new Email(user).sendEmailVerification(url);
 
     res.status(200).json({
       status: 'success',
@@ -200,8 +234,10 @@ exports.sendVerification = catchAsync(async (req, res, next) => {
     await user.save({ validateBeforeSave: false });
 
     return next(
-      new AppError('There was an error sending the email. Try again later!'),
-      500
+      new AppError(
+        'There was an error sending the email. Please try again later!',
+        500
+      )
     );
   }
 });
@@ -216,7 +252,7 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
   await user.save({ validateBeforeSave: false });
 
   try {
-    const url = `${frontendUrl}/reset/${resetToken}`;
+    const url = `${FRONTEND_URL}/reset/${resetToken}`;
     await new Email(user, url).sendPasswordReset();
 
     res.status(200).json({
@@ -235,11 +271,11 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
   }
 });
 
+const hashToken = (token) =>
+  crypto.createHash('sha256').update(token).digest('hex');
+
 exports.verifyEmail = catchAsync(async (req, res, next) => {
-  const hashedToken = crypto
-    .createHash('sha256')
-    .update(req.params.token)
-    .digest('hex');
+  const hashedToken = hashToken(req.params.token);
 
   const user = await User.findOne({
     emailVerificationToken: hashedToken,
@@ -256,19 +292,22 @@ exports.verifyEmail = catchAsync(async (req, res, next) => {
 
   await user.save({ validateBeforeSave: false });
 
+  const { _id, name, email } = user;
+
   res.status(200).json({
     status: 'success',
     data: {
-      user,
+      user: {
+        _id,
+        name,
+        email,
+      },
     },
   });
 });
 
 exports.resetPassword = catchAsync(async (req, res, next) => {
-  const hashedToken = crypto
-    .createHash('sha256')
-    .update(req.params.token)
-    .digest('hex');
+  const hashedToken = hashToken(req.params.token);
 
   const user = await User.findOne({
     passwordResetToken: hashedToken,
@@ -278,10 +317,12 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
   if (!user) {
     return next(new AppError('Token is invalid or has expired', 400));
   }
+
   user.password = req.body.password;
   user.passwordConfirm = req.body.passwordConfirm;
   user.passwordResetToken = undefined;
   user.passwordResetExpires = undefined;
+
   await user.save();
 
   createSendToken(user, 200, req, res);
@@ -291,7 +332,7 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
   const user = await User.findById(req.user.id).select('+password');
 
   if (!(await user.correctPassword(req.body.passwordCurrent, user.password))) {
-    return next(new AppError('Your current password is wrong.', 401));
+    return next(new AppError('Your current password is wrong.', 403));
   }
 
   user.password = req.body.password;

@@ -157,19 +157,6 @@ userSchema.methods.createPasswordResetToken = function () {
   return resetToken;
 };
 
-userSchema.methods.createEmailVerificationToken = function () {
-  const token = crypto.randomBytes(32).toString('hex');
-
-  this.emailVerificationToken = crypto
-    .createHash('sha256')
-    .update(token)
-    .digest('hex');
-
-  this.emailVerificationExpires = Date.now() + 10 * 60 * 1000;
-
-  return token;
-};
-
 const User = mongoose.model('User', userSchema);
 
 module.exports = User;

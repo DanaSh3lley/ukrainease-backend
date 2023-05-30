@@ -40,7 +40,7 @@ const checkAwardAchievement = async (userId, awardId, criteriaType) => {
     user: userId,
     award: awardId,
     criteriaType,
-  }).populate('award');
+  });
 
   if (!userProgress) {
     const initialLevel = 0;
@@ -52,10 +52,10 @@ const checkAwardAchievement = async (userId, awardId, criteriaType) => {
       criteriaType,
       level: initialLevel,
       currentCount: initialCount,
-    }).populate('award');
-
-    await userProgress.save();
+    });
   }
+
+  userProgress = await userProgress.populate('award');
 
   const awardLevels = userProgress.award.criteria.levels;
   const currentLevel = userProgress.level;
