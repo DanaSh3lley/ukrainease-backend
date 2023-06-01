@@ -8,7 +8,7 @@ const {
   calculateCoefficient,
 } = require('./levelService');
 
-const incrementUserProgress = async (
+const changeUserProgress = async (
   userId,
   awardId,
   criteriaType,
@@ -114,6 +114,6 @@ const checkAwardAchievement = async (userId, awardId, criteriaType) => {
 };
 
 module.exports = {
-  incrementUserProgress: catchAsync(incrementUserProgress),
-  checkAwardAchievement: catchAsync(checkAwardAchievement),
+  incrementUserProgress: changeUserProgress,
+  checkAwardAchievement: checkAwardAchievement,
 };

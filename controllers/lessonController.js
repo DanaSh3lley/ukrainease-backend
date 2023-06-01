@@ -13,7 +13,8 @@ const {
 } = require('../utils/progressTracker');
 const Award = require('../models/awardModel');
 const CriteriaTypes = require('../utils/criteriaTypes');
-const { shuffleArray } = require('./leagueController');
+const { shuffleArray } = require('../utils/leagueTasks');
+const { checkAward } = require('../utils/award');
 
 const getQuestionProgressRecords = async (userId, questions) =>
   await QuestionProgress.find({ user: userId, question: { $in: questions } });
@@ -195,6 +196,14 @@ const calculateNextReview = (questionProgress, correctAnswer, modifier = 1) => {
   return questionProgress;
 };
 
+const findAwardByType = async (awardType) =>
+  await Award.findOne({ 'criteria.type': awardType });
+
+const completeLesson = async (lessonProgress) => {
+  lessonProgress.status = 'completed';
+  await lessonProgress.save();
+};
+
 const calculateNextLessonReviewDate = (questionProgressRecords) =>
   questionProgressRecords.reduce((minDate, record) => {
     const recordDate = new Date(record.nextReview);
@@ -205,7 +214,7 @@ const findLessonProgress = async (userId, lessonId) =>
   await LessonProgress.findOne({
     user: userId,
     lesson: lessonId,
-  });
+  }).populate('lesson');
 
 const updateNextReviewDate = (nextReviewDate, lessonProgress) => {
   lessonProgress.nextReview = nextReviewDate;
@@ -231,43 +240,57 @@ const setNextReviewDateForLessonProgress = async (userId, lesson) => {
 };
 
 function validateUserAnswer(userAnswer, question) {
-  const { type /*options*/ } = question;
+  const { type, options } = question;
 
   switch (type) {
     case 'singleChoice': {
-      // const correctOption = options.find((option) => option.isCorrect);
-      // return userAnswer === correctOption.text;
-      return !Math.round(Math.random());
+      const correctOption = options.find((option) => option.isCorrect);
+      return userAnswer === correctOption.text;
     }
 
     case 'multipleChoice': {
-      // const correctOptions = options.filter((option) => option.isCorrect);
-      // return correctOptions.every((option) => userAnswer.includes(option.text));
-      return !Math.round(Math.random());
+      const correctOptions = options.filter((option) => option.isCorrect);
+      return correctOptions.every((option) => userAnswer.includes(option.text));
     }
     case 'trueFalse': {
-      // const correctOption = options.find((option) => option.isCorrect);
-      // return userAnswer === correctOption.text;
-      return !Math.round(Math.random());
+      const correctOption = options.find((option) => option.isCorrect);
+      return userAnswer === correctOption.text;
     }
     case 'fillBlank': {
-      // const correctAnswers = options.map((option) => option.text.toLowerCase());
-      // return correctAnswers.some((correctAnswer) =>
-      //   userAnswer.toLowerCase().includes(correctAnswer)
-      // );
-      return !Math.round(Math.random());
+      const correctAnswers = options.map((option) => option.text.toLowerCase());
+      return correctAnswers.some((correctAnswer) =>
+        userAnswer.toLowerCase().includes(correctAnswer)
+      );
     }
 
     case 'shortAnswer': {
-      return !Math.round(Math.random());
+      const correctAnswers = options.map((option) => option.text.toLowerCase());
+      return correctAnswers.some((correctAnswer) =>
+        userAnswer.toLowerCase().includes(correctAnswer)
+      );
     }
 
     case 'matching': {
-      return !Math.round(Math.random());
+      if (userAnswer.length !== options.length) {
+        return false;
+      }
+      for (let i = 0; i < userAnswer.length; i++) {
+        const userOption = userAnswer[i];
+        const correctOption = options[i];
+
+        if (
+          userOption.left !== correctOption.left ||
+          userOption.right !== correctOption.right
+        ) {
+          return false;
+        }
+      }
+
+      return true;
     }
 
     case 'card': {
-      return !Math.round(Math.random());
+      return userAnswer;
     }
 
     default: {
@@ -345,14 +368,6 @@ const updateAttempts = (updatedQuestionProgress, userAnswer, isCorrect) => {
 
 const updateLessonProgress = (lessonProgress) => {
   lessonProgress.currentQuestion += 1;
-};
-
-const findAwardByType = async (awardType) =>
-  Award.findOne({ 'criteria.type': awardType });
-
-const completeLesson = async (lessonProgress) => {
-  lessonProgress.status = 'completed';
-  await lessonProgress.save();
 };
 
 const calculateProgressStats = (questionProgresses, totalQuestions) => {
@@ -477,6 +492,7 @@ const startLesson = async (req, res, next) => {
   });
 
   user.coins -= requiredCoins;
+  await checkAward(CriteriaTypes.LESSON_STARTED);
   await user.save({ validateBeforeSave: false });
 
   res.status(200).json({
@@ -524,30 +540,20 @@ const submitQuestion = async (req, res, next) => {
   }
 
   const isCorrect = validateUserAnswer(userAnswer, question);
+  console.log(lessonProgress.lesson.lessonType);
   const updatedQuestionProgress = calculateNextReview(
     questionProgress,
-    isCorrect
+    isCorrect,
+    lessonProgress.lesson.lessonType === 'grammar' ? 2 : 1
   );
   updateAttempts(updatedQuestionProgress, userAnswer, isCorrect);
 
   updateLessonProgress(lessonProgress);
 
-  const award = await findAwardByType(CriteriaTypes.QUESTIONS_ANSWERED);
+  await checkAward(CriteriaTypes.QUESTIONS_ANSWERED, userId);
 
-  if (award) {
-    await incrementUserProgress(
-      userId,
-      award._id,
-      CriteriaTypes.QUESTIONS_ANSWERED
-    );
-    await checkAwardAchievement(
-      userId,
-      award._id,
-      CriteriaTypes.QUESTIONS_ANSWERED
-    );
-  } else {
-    return next(new AppError('Award not found', 404));
-  }
+  if (isCorrect) await checkAward(CriteriaTypes.CORRECT_ANSWERS, userId);
+  else await checkAward(CriteriaTypes.INCORRECT_ANSWERS, userId);
 
   await Promise.all([updatedQuestionProgress.save(), lessonProgress.save()]);
 
