@@ -15,6 +15,7 @@ const Award = require('../models/awardModel');
 const CriteriaTypes = require('../utils/criteriaTypes');
 const { shuffleArray } = require('../utils/leagueTasks');
 const { checkAward } = require('../utils/award');
+const APIFeatures = require('../utils/apiFeatures');
 
 const getQuestionProgressRecords = async (userId, questions) =>
   await QuestionProgress.find({ user: userId, question: { $in: questions } });
@@ -299,7 +300,7 @@ function validateUserAnswer(userAnswer, question) {
   }
 }
 
-const getLessonProgress = async (userId) =>
+const getLessonProgressStatus = async (userId) =>
   Lesson.find().populate({
     path: 'progress',
     match: { user: userId },
@@ -425,15 +426,37 @@ const lessonProgressToComplete = async (
 
 const getLessonsForUser = async (req, res) => {
   const { id } = req.user;
-  const lessons = await getLessonProgress(id);
+  const filter = req.params._id ? { obj: req.params._id } : {};
 
-  const response = lessons.map(mapLessonsResponse);
+  const lessons = await getLessonProgressStatus(id);
+  const allTags = [...new Set(lessons.map((lesson) => lesson.tags).flat())];
+  const categories = [
+    ...new Set(lessons.map((lesson) => lesson.category).flat()),
+  ];
+
+  const features = new APIFeatures(Lesson.find(filter), req.query);
+  features.filter().sort().limitFields().paginate();
+  const doc = await features.query;
+
+  const response = doc.map((lesson) => {
+    const progress = lessons.find(
+      (lessonProgress) =>
+        lessonProgress._id.toString() === lesson._id.toString()
+    );
+    return mapLessonsResponse(progress);
+  });
+
+  const total = await Lesson.countDocuments(filter);
 
   return res.status(200).json({
     status: 'success',
     data: response,
+    total: total,
+    tags: allTags,
+    categories: categories,
   });
 };
+
 const getLessonByIdForUser = async (req, res, next) => {
   const { lessonId } = req.params;
   const { id: userId } = req.user;
@@ -540,7 +563,6 @@ const submitQuestion = async (req, res, next) => {
   }
 
   const isCorrect = validateUserAnswer(userAnswer, question);
-  console.log(lessonProgress.lesson.lessonType);
   const updatedQuestionProgress = calculateNextReview(
     questionProgress,
     isCorrect,

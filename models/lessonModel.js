@@ -21,6 +21,14 @@ const lessonSchema = new mongoose.Schema({
     required: true,
     enum: ['grammar', 'vocabulary', 'typicalError'],
   },
+  category: {
+    type: String,
+    required: true,
+  },
+  tags: {
+    type: [String],
+    required: false,
+  },
   theory: {
     type: String,
     required: true,
