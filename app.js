@@ -27,6 +27,7 @@ const levelHistoryRouter = require('./routes/levelHistoryRoutes');
 const dailyExperienceRouter = require('./routes/dailyExperienceRouters');
 const { scheduleStreak } = require('./utils/streakTasks');
 const { leagueTask } = require('./utils/leagueTasks');
+const { lessonStatusTask } = require('./utils/lessonTasks');
 
 const app = express();
 
@@ -66,6 +67,7 @@ app.use(hpp({ whitelist: [] }));
 app.use(compression());
 scheduleStreak();
 leagueTask();
+lessonStatusTask();
 
 // 3) ROUTES
 app.use('/api/v1/users', userRouter);

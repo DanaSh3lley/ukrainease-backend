@@ -58,12 +58,16 @@ questionProgressSchema.path('nextReview').get((value) => {
   return value;
 });
 
-// Define a setter for the 'nextReview' field to handle string input and convert it to a Date object
 questionProgressSchema.path('nextReview').set((value) => {
   if (typeof value === 'string') {
     return new Date(value);
   }
   return value;
+});
+
+questionProgressSchema.pre('save', async function (next) {
+  this.nextReview = new Date(this.nextReview).setHours(0, 0, 0, 0);
+  next();
 });
 
 const QuestionProgress = mongoose.model(

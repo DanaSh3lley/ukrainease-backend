@@ -93,8 +93,8 @@ async function assignEarnings(user, pointsEarned) {
   const userLevel = calculateUserLevel(user.experiencePoints);
 
   if (user.level !== userLevel) {
-    // If the user's level has changed, perform level-up actions
     user.level = userLevel;
+    user.nextLevelRequired = levelThresholds[user.level];
     const coefficient = await calculateCoefficient(user);
     user.coinEarningCoefficient = coefficient;
     user.experienceEarningCoefficient = coefficient;

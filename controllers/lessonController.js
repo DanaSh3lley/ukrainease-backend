@@ -7,10 +7,6 @@ const AppError = require('../utils/appError');
 const QuestionProgress = require('../models/questionProgressModel');
 const Question = require('../models/questionModel');
 const { assignEarnings, increaseCoins } = require('../utils/levelService');
-const {
-  incrementUserProgress,
-  checkAwardAchievement,
-} = require('../utils/progressTracker');
 const Award = require('../models/awardModel');
 const CriteriaTypes = require('../utils/criteriaTypes');
 const { shuffleArray } = require('../utils/leagueTasks');
@@ -244,61 +240,69 @@ function validateUserAnswer(userAnswer, question) {
   const { type, options } = question;
 
   switch (type) {
-    case 'singleChoice': {
-      const correctOption = options.find((option) => option.isCorrect);
-      return userAnswer === correctOption.text;
-    }
-
-    case 'multipleChoice': {
-      const correctOptions = options.filter((option) => option.isCorrect);
-      return correctOptions.every((option) => userAnswer.includes(option.text));
-    }
-    case 'trueFalse': {
-      const correctOption = options.find((option) => option.isCorrect);
-      return userAnswer === correctOption.text;
-    }
-    case 'fillBlank': {
-      const correctAnswers = options.map((option) => option.text.toLowerCase());
-      return correctAnswers.some((correctAnswer) =>
-        userAnswer.toLowerCase().includes(correctAnswer)
-      );
-    }
-
-    case 'shortAnswer': {
-      const correctAnswers = options.map((option) => option.text.toLowerCase());
-      return correctAnswers.some((correctAnswer) =>
-        userAnswer.toLowerCase().includes(correctAnswer)
-      );
-    }
-
-    case 'matching': {
-      if (userAnswer.length !== options.length) {
-        return false;
-      }
-      for (let i = 0; i < userAnswer.length; i++) {
-        const userOption = userAnswer[i];
-        const correctOption = options[i];
-
-        if (
-          userOption.left !== correctOption.left ||
-          userOption.right !== correctOption.right
-        ) {
-          return false;
-        }
-      }
-
-      return true;
-    }
-
-    case 'card': {
-      return userAnswer;
-    }
+    // case 'singleChoice': {
+    //   const correctOption = options.find((option) => option.isCorrect);
+    //   return userAnswer === correctOption.text;
+    // }
+    //
+    // case 'multipleChoice': {
+    //   const correctOptions = options.filter((option) => option.isCorrect);
+    //   return correctOptions.every((option) => userAnswer.includes(option.text));
+    // }
+    // case 'trueFalse': {
+    //   const correctOption = options.find((option) => option.isCorrect);
+    //   return userAnswer === correctOption.text;
+    // }
+    // case 'fillBlank': {
+    //   const correctAnswers = options.map((option) => option.text.toLowerCase());
+    //   return correctAnswers.some((correctAnswer) =>
+    //     userAnswer.toLowerCase().includes(correctAnswer)
+    //   );
+    // }
+    //
+    // case 'shortAnswer': {
+    //   const correctAnswers = options.map((option) => option.text.toLowerCase());
+    //   return correctAnswers.some((correctAnswer) =>
+    //     userAnswer.toLowerCase().includes(correctAnswer)
+    //   );
+    // }
+    //
+    // case 'matching': {
+    //   if (userAnswer.length !== options.length) {
+    //     return false;
+    //   }
+    //   for (let i = 0; i < userAnswer.length; i++) {
+    //     const userOption = userAnswer[i];
+    //     const correctOption = options[i];
+    //
+    //     if (
+    //       userOption.left !== correctOption.left ||
+    //       userOption.right !== correctOption.right
+    //     ) {
+    //       return false;
+    //     }
+    //   }
+    //
+    //   return true;
+    // }
+    //
+    // case 'card': {
+    //   return userAnswer;
+    // }
 
     default: {
-      return false;
+      return true;
     }
   }
 }
+
+const changeLessonStatus = async (lesson) => {
+  const today = new Date();
+  if (lesson.nextReview <= today) {
+    lesson.status = 'needReview';
+    await lesson.save();
+  }
+};
 
 const getLessonProgressStatus = async (userId) =>
   Lesson.find().populate({
@@ -429,13 +433,45 @@ const getLessonsForUser = async (req, res) => {
   const filter = req.params._id ? { obj: req.params._id } : {};
 
   const lessons = await getLessonProgressStatus(id);
-  const allTags = [...new Set(lessons.map((lesson) => lesson.tags).flat())];
+  const allTags = [
+    ...new Set(
+      lessons
+        .map((lesson) => {
+          if (lesson.lessonType === req.query.lessonType) return lesson.tags;
+        })
+        .flat()
+        .filter((el) => el)
+    ),
+  ];
   const categories = [
-    ...new Set(lessons.map((lesson) => lesson.category).flat()),
+    ...new Set(
+      lessons
+        .map((lesson) => {
+          if (lesson.lessonType === req.query.lessonType)
+            return lesson.category;
+        })
+        .flat()
+        .filter((el) => el)
+    ),
   ];
 
+  const countFeatures = new APIFeatures(Lesson.find(filter), req.query);
+  countFeatures
+    .filterTags() // Use the filterTags() method for 'tags'
+    .filterCategory() // Use the filterCategory() method for 'category'
+    .search()
+    .filter('tags', 'category'); // Use the generic filter() method for other fields if needed
+  const count = await countFeatures.query.countDocuments();
+
   const features = new APIFeatures(Lesson.find(filter), req.query);
-  features.filter().sort().limitFields().paginate();
+  features
+    .filterTags() // Use the filterTags() method for 'tags'
+    .filterCategory() // Use the filterCategory() method for 'category'
+    .search()
+    .filter('tags', 'category') // Use the generic filter() method for other fields if needed
+    .sort()
+    .limitFields()
+    .paginate();
   const doc = await features.query;
 
   const response = doc.map((lesson) => {
@@ -446,12 +482,10 @@ const getLessonsForUser = async (req, res) => {
     return mapLessonsResponse(progress);
   });
 
-  const total = await Lesson.countDocuments(filter);
-
   return res.status(200).json({
     status: 'success',
     data: response,
-    total: total,
+    total: count,
     tags: allTags,
     categories: categories,
   });
@@ -508,14 +542,21 @@ const startLesson = async (req, res, next) => {
   const lessonProgress = await LessonProgress.create({
     user: userId,
     lesson: lessonId,
-    status: 'inProgress',
+    status: 'notStarted',
     opened: true,
     currentQuestion: 0,
     sessionQuestions,
   });
 
+  await lesson.populate('questions');
+  const { questions } = lesson;
+
+  questions.forEach(async (question) => {
+    const questionProgress = createQuestionProgress(userId, question._id);
+    await questionProgress.save();
+  });
   user.coins -= requiredCoins;
-  await checkAward(CriteriaTypes.LESSON_STARTED);
+  await checkAward(CriteriaTypes.LESSON_STARTED, userId);
   await user.save({ validateBeforeSave: false });
 
   res.status(200).json({
@@ -708,4 +749,5 @@ module.exports = {
   submitQuestion: catchAsync(submitQuestion),
   takeLesson: catchAsync(takeLesson),
   finishLesson: catchAsync(finishLesson),
+  changeLessonStatus: catchAsync(changeLessonStatus),
 };

@@ -1,6 +1,7 @@
 const express = require('express');
 const lessonController = require('../controllers/lessonController');
 const authController = require('../controllers/authController');
+const lessonProgressController = require('../controllers/lessonProgressController');
 
 const router = express.Router();
 
@@ -10,6 +11,13 @@ router
   .route('/')
   .get(lessonController.getAllLessons)
   .post(authController.restrictTo('admin'), lessonController.createLesson);
+
+router
+  .route('/recommended')
+  .get(lessonProgressController.getRecommendedLessons);
+router
+  .route('/needReview')
+  .get(lessonProgressController.getLessonsThatNeedToReview);
 
 router.get('/current-user', lessonController.getLessonsForUser);
 router.get('/current-user/:lessonId', lessonController.getLessonByIdForUser);

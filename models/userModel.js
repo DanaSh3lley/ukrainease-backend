@@ -36,6 +36,10 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 1,
     },
+    nextLevelRequired: {
+      type: Number,
+      default: 100,
+    },
     streak: {
       type: Number,
       default: 0,

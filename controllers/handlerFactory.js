@@ -65,16 +65,6 @@ exports.getOne = (Model, popOptions) =>
     });
   });
 
-const applyFilter = (lessons, filterOptions) =>
-  lessons.filter((lesson) =>
-    Object.entries(filterOptions).every(([key, values]) => {
-      if (!Array.isArray(values)) {
-        return true; // Skip filtering for non-array values
-      }
-      return values.some((value) => lesson[key].includes(value));
-    })
-  );
-
 exports.getAll = (Model) =>
   catchAsync(async (req, res, next) => {
     let filter = {};

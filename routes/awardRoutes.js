@@ -14,12 +14,12 @@ router
   .get(awardController.getAllAwards)
   .post(authController.restrictTo('admin'), awardController.createAward);
 
+router.get('/status', getAwardsWithCompletionStatus);
+
 router
   .route('/:id')
   .get(awardController.getAward)
   .patch(authController.restrictTo('admin'), awardController.updateAward)
   .delete(authController.restrictTo('admin'), awardController.deleteAward);
-
-router.get('/status', getAwardsWithCompletionStatus);
 
 module.exports = router;

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
 const lessonProgressSchema = new mongoose.Schema({
   user: {
@@ -14,10 +15,10 @@ const lessonProgressSchema = new mongoose.Schema({
   opened: {
     type: Boolean,
     default: false,
-  }, // New field to indicate if the lesson is opened/purchased
+  },
   status: {
     type: String,
-    enum: ['notStarted', 'inProgress', 'completed'],
+    enum: ['notStarted', 'needReview', 'inProgress', 'completed'],
     default: 'notStarted',
   },
   attempts: {
@@ -61,6 +62,11 @@ const lessonProgressSchema = new mongoose.Schema({
     required: true,
     default: [],
   },
+});
+
+lessonProgressSchema.pre('save', async function (next) {
+  this.nextReview = new Date(this.nextReview).setHours(0, 0, 0, 0);
+  next();
 });
 
 const LessonProgress = mongoose.model('LessonProgress', lessonProgressSchema);

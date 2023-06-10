@@ -102,7 +102,7 @@ exports.createUser = (req, res) => {
   });
 };
 
-exports.getUser = factory.getOne(User);
+exports.getUser = factory.getOne(User, 'league');
 exports.getAllUsers = factory.getAll(User);
 
 // Do NOT update passwords with this!
