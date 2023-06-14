@@ -1,6 +1,5 @@
 const cron = require('node-cron');
 const catchAsync = require('./catchAsync');
-const User = require('../models/userModel');
 const { changeLessonStatus } = require('../controllers/lessonController');
 const LessonProgress = require('../models/lessonProgressModel');
 

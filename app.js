@@ -74,7 +74,6 @@ scheduleStreak();
 leagueTask();
 lessonStatusTask();
 
-// 3) ROUTES
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/awards', awardRouter);
 app.use('/api/v1/questions', questionRouter);

@@ -20,22 +20,18 @@ const increaseExperiencePoints = (user, amount) => {
 async function calculateCoefficient(user) {
   let coefficient = 1.0;
 
-  // Calculate level coefficient
   const levelCoefficient = user.level * 0.05;
   coefficient += levelCoefficient;
 
-  // Calculate league coefficient (replace 'user.league' with the actual property representing the user's league)
   const league = await League.findById(user.league);
   if (league) {
     const leagueCoefficient = league.level * 0.05;
     coefficient += leagueCoefficient;
   }
 
-  // Calculate streak coefficient (replace 'user.streak' with the actual property representing the user's streak)
   const streakCoefficient = user.streak * 0.2;
   coefficient += streakCoefficient;
 
-  // Calculate award coefficient
   const userProgress = await UserProgress.find({ user: user._id }).populate(
     'award'
   );
@@ -60,7 +56,7 @@ function calculateUserLevel(experiencePoints) {
 }
 
 async function assignEarnings(user, pointsEarned) {
-  const currentDate = new Date().toISOString().slice(0, 10); // Get the current date in YYYY-MM-DD format
+  const currentDate = new Date().toISOString().slice(0, 10);
 
   const experience = increaseExperiencePoints(user, pointsEarned);
 
@@ -76,11 +72,9 @@ async function assignEarnings(user, pointsEarned) {
   });
 
   if (dailyExperienceEntry) {
-    // If an entry exists, update the experience points for the current date
     dailyExperienceEntry.points += experience;
     await dailyExperienceEntry.save();
   } else {
-    // If no entry exists, create a new entry for the current date
     const newDailyExperienceEntry = new DailyExperience({
       user: user._id,
       date: new Date(currentDate),
@@ -89,7 +83,6 @@ async function assignEarnings(user, pointsEarned) {
     await newDailyExperienceEntry.save();
   }
 
-  // Calculate the user's new level based on the updated experience points
   const userLevel = calculateUserLevel(user.experiencePoints);
 
   if (user.level !== userLevel) {
@@ -112,7 +105,6 @@ async function assignEarnings(user, pointsEarned) {
       level: userLevel,
     });
 
-    // Save the level history entry to the database
     await levelHistoryEntry.save();
   }
 }

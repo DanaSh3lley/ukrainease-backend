@@ -12,7 +12,6 @@ exports.getUserDailyExperienceHistory = catchAsync(async (req, res) => {
   const { id: userId } = req.user;
 
   const dailyExperiences = await DailyExperience.find({ user: userId });
-  console.log(dailyExperiences);
   return res.status(200).json({
     dailyExperiences,
   });

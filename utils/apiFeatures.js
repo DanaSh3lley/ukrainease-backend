@@ -41,7 +41,7 @@ class APIFeatures {
     if (this.queryString.category) {
       const category = this.queryString.category
         .split(',')
-        .map((category) => category.trim());
+        .map((c) => c.trim());
       this.query = this.query.where('category').in(category);
     }
     return this;
@@ -61,10 +61,8 @@ class APIFeatures {
   search() {
     const { search } = this.queryString;
     if (search) {
-      console.log(search);
       const searchRegex = new RegExp(search, 'i');
       this.query = this.query.where('name').regex(searchRegex);
-      console.log(this.query);
     }
     return this;
   }
@@ -83,8 +81,7 @@ class APIFeatures {
   async count() {
     try {
       const count = await this.query;
-      console.log(count);
-      return 10;
+      return count;
     } catch (error) {
       throw new Error('Error counting documents.');
     }

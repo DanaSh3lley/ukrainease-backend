@@ -7,7 +7,6 @@ const AppError = require('../utils/appError');
 const QuestionProgress = require('../models/questionProgressModel');
 const Question = require('../models/questionModel');
 const { assignEarnings, increaseCoins } = require('../utils/levelService');
-const Award = require('../models/awardModel');
 const CriteriaTypes = require('../utils/criteriaTypes');
 const { shuffleArray } = require('../utils/leagueTasks');
 const { checkAward } = require('../utils/award');

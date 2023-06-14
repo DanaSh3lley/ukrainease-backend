@@ -16,18 +16,18 @@ function shuffleArray(array) {
 
 function getCurrentWeekDates() {
   const now = new Date();
-  const currentDay = now.getDay(); // Get the current day of the week (0 = Sunday, 1 = Monday, ...)
-  const startOfWeek = new Date(now); // Clone the current date
-  const endOfWeek = new Date(now); // Clone the current date
+  const currentDay = now.getDay();
+  const startOfWeek = new Date(now);
+  const endOfWeek = new Date(now);
 
-  const diff = currentDay - 1; // Calculate the difference between the current day and Monday
-  startOfWeek.setDate(now.getDate() - diff); // Subtract the difference from the current date
+  const diff = currentDay - 1;
+  startOfWeek.setDate(now.getDate() - diff);
 
-  const diffEnd = 7 - currentDay; // Calculate the difference between Sunday and the current day
-  endOfWeek.setDate(now.getDate() + diffEnd); // Add the difference to the current date
+  const diffEnd = 7 - currentDay;
+  endOfWeek.setDate(now.getDate() + diffEnd);
 
-  startOfWeek.setHours(0, 0, 0, 0); // Set the time to 00:00:00
-  endOfWeek.setHours(23, 59, 59, 999); // Set the time to 23:59:59.999
+  startOfWeek.setHours(0, 0, 0, 0);
+  endOfWeek.setHours(23, 59, 59, 999);
 
   return {
     startOfWeek,

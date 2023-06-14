@@ -11,7 +11,6 @@ exports.deleteLessonProgress = factory.deleteOne(LessonProgress);
 exports.getRecommendedLessons = async (req, res, next) => {
   const userId = req.user.id;
 
-  // Retrieve lesson IDs for which the user has lesson progress
   const lessonProgress = await LessonProgress.find({
     user: userId,
   }).distinct('lesson');

@@ -1,7 +1,6 @@
 const UserProgress = require('../models/userProgressModel');
 const User = require('../models/userModel');
 const Notification = require('../models/notificationModel');
-const catchAsync = require('./catchAsync');
 const {
   assignEarnings,
   increaseCoins,

@@ -48,7 +48,7 @@ async function getAwardStatus(userId, award) {
 }
 
 exports.getAwardsWithCompletionStatus = catchAsync(async (req, res, next) => {
-  const userId = req.user.id; // Assuming you have the user ID in the request
+  const userId = req.user.id;
 
   const awards = await Award.find();
 
