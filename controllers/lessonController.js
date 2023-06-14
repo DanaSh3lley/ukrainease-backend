@@ -55,7 +55,6 @@ const shuffleQuestions = (questionArrays) => {
 
 const selectQuestionsForSession = (questions, count) =>
   questions.slice(0, count);
-
 const createSessionQuestions = async (
   userId,
   lessonId,
@@ -166,7 +165,6 @@ const updateProgress = (
   }
 
   nextReviewDate.setDate(nextReviewDate.getDate() + newInterval);
-
   determineStatus(newInterval, questionProgress);
 
   clampEaseFactor(questionProgress);
@@ -177,7 +175,6 @@ const updateProgress = (
 
 const calculateNextReview = (questionProgress, correctAnswer, modifier = 1) => {
   const { repetitionNumber, ease, nextReview, interval } = questionProgress;
-
   let newInterval;
 
   if (repetitionNumber === 0) {
@@ -187,14 +184,10 @@ const calculateNextReview = (questionProgress, correctAnswer, modifier = 1) => {
   }
 
   const nextReviewDate = calculateNextReviewDate(nextReview);
-
   updateProgress(correctAnswer, newInterval, nextReviewDate, questionProgress);
 
   return questionProgress;
 };
-
-const findAwardByType = async (awardType) =>
-  await Award.findOne({ 'criteria.type': awardType });
 
 const completeLesson = async (lessonProgress) => {
   lessonProgress.status = 'completed';
@@ -237,58 +230,61 @@ const setNextReviewDateForLessonProgress = async (userId, lesson) => {
 };
 
 function validateUserAnswer(userAnswer, question) {
-  const { type, options } = question;
+  const { type, options, matchingOptions } = question;
 
   switch (type) {
-    // case 'singleChoice': {
-    //   const correctOption = options.find((option) => option.isCorrect);
-    //   return userAnswer === correctOption.text;
-    // }
-    //
-    // case 'multipleChoice': {
-    //   const correctOptions = options.filter((option) => option.isCorrect);
-    //   return correctOptions.every((option) => userAnswer.includes(option.text));
-    // }
-    // case 'trueFalse': {
-    //   const correctOption = options.find((option) => option.isCorrect);
-    //   return userAnswer === correctOption.text;
-    // }
-    // case 'fillBlank': {
-    //   const correctAnswers = options.map((option) => option.text.toLowerCase());
-    //   return correctAnswers.some((correctAnswer) =>
-    //     userAnswer.toLowerCase().includes(correctAnswer)
-    //   );
-    // }
-    //
-    // case 'shortAnswer': {
-    //   const correctAnswers = options.map((option) => option.text.toLowerCase());
-    //   return correctAnswers.some((correctAnswer) =>
-    //     userAnswer.toLowerCase().includes(correctAnswer)
-    //   );
-    // }
-    //
-    // case 'matching': {
-    //   if (userAnswer.length !== options.length) {
-    //     return false;
-    //   }
-    //   for (let i = 0; i < userAnswer.length; i++) {
-    //     const userOption = userAnswer[i];
-    //     const correctOption = options[i];
-    //
-    //     if (
-    //       userOption.left !== correctOption.left ||
-    //       userOption.right !== correctOption.right
-    //     ) {
-    //       return false;
-    //     }
-    //   }
-    //
-    //   return true;
-    // }
-    //
-    // case 'card': {
-    //   return userAnswer;
-    // }
+    case 'singleChoice': {
+      const correctOption = options.find((option) => option.isCorrect);
+
+      return userAnswer === correctOption.text;
+    }
+
+    case 'multipleChoice': {
+      const correctOptions = options.filter((option) => option.isCorrect);
+
+      return correctOptions.every((option) => userAnswer.includes(option.text));
+    }
+    case 'trueFalse': {
+      const correctOption = options.find((option) => option.isCorrect);
+
+      return userAnswer === correctOption.text;
+    }
+    case 'fillBlank': {
+      const correctAnswers = options.map((option) => option.text.toLowerCase());
+
+      return correctAnswers.some((correctAnswer) =>
+        userAnswer.toLowerCase().includes(correctAnswer)
+      );
+    }
+
+    case 'shortAnswer': {
+      const correctAnswers = options.map((option) => option.text.toLowerCase());
+
+      return correctAnswers.some((correctAnswer) =>
+        userAnswer.toLowerCase().includes(correctAnswer)
+      );
+    }
+
+    case 'matching': {
+      if (userAnswer.length !== matchingOptions.length) {
+        return false;
+      }
+      for (let i = 0; i < userAnswer.length; i++) {
+        const userOption = userAnswer[i];
+        if (
+          !matchingOptions.find(
+            (el) => el.left === userOption[0] && el.right === userOption[1]
+          )
+        ) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    case 'card': {
+      return userAnswer;
+    }
 
     default: {
       return true;
@@ -391,7 +387,7 @@ const calculateProgressStats = (questionProgresses, totalQuestions) => {
     totalExperienceEarned += experiencePointsEarned;
 
     return {
-      question: questionProgress.question.text,
+      question: questionProgress.question,
       userAnswer: attempts[0].userAnswer,
       isCorrect,
     };
@@ -424,7 +420,6 @@ const lessonProgressToComplete = async (
     coinsEarned: totalCoinsEarned,
     experiencePointsEarned: totalExperienceEarned,
   });
-
   await lessonProgress.save();
 };
 
@@ -457,18 +452,18 @@ const getLessonsForUser = async (req, res) => {
 
   const countFeatures = new APIFeatures(Lesson.find(filter), req.query);
   countFeatures
-    .filterTags() // Use the filterTags() method for 'tags'
-    .filterCategory() // Use the filterCategory() method for 'category'
+    .filterTags()
+    .filterCategory()
     .search()
-    .filter('tags', 'category'); // Use the generic filter() method for other fields if needed
+    .filter('tags', 'category');
   const count = await countFeatures.query.countDocuments();
 
   const features = new APIFeatures(Lesson.find(filter), req.query);
   features
-    .filterTags() // Use the filterTags() method for 'tags'
-    .filterCategory() // Use the filterCategory() method for 'category'
+    .filterTags()
+    .filterCategory()
     .search()
-    .filter('tags', 'category') // Use the generic filter() method for other fields if needed
+    .filter('tags', 'category')
     .sort()
     .limitFields()
     .paginate();
@@ -496,7 +491,10 @@ const getLessonByIdForUser = async (req, res, next) => {
   const { id: userId } = req.user;
 
   const lesson = await getLessonProgressById(lessonId, userId);
-
+  const lessonProgress = await LessonProgress.findOne({
+    user: userId,
+    lesson: lessonId,
+  });
   if (!lesson) {
     return next(new AppError('Lesson not found', 404));
   }
@@ -505,7 +503,10 @@ const getLessonByIdForUser = async (req, res, next) => {
 
   res.status(200).json({
     status: 'success',
-    data: response,
+    data: {
+      lesson: response,
+      lessonProgress: lessonProgress,
+    },
   });
 };
 const startLesson = async (req, res, next) => {
@@ -654,7 +655,6 @@ const takeLesson = async (req, res, next) => {
   }
 
   const { currentQuestion, sessionQuestions } = lessonProgress;
-
   if (!sessionQuestions[currentQuestion]) {
     return next(new AppError('No more questions available', 400));
   }

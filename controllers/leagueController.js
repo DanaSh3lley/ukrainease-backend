@@ -44,7 +44,7 @@ exports.getUserLeague = async (req, res, next) => {
 
   const users = await sortUsersByExperience(group.users);
 
-  const nextLeague = await League.find({ level: user.league.level + 1 });
+  const nextLeague = await League.findOne({ level: user.league.level + 1 });
 
   return res.status(200).json({
     group: users,

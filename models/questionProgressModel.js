@@ -20,7 +20,7 @@ const questionProgressSchema = new mongoose.Schema({
   attempts: {
     type: [
       {
-        userAnswer: String,
+        userAnswer: mongoose.Schema.Types.Mixed,
         isCorrect: Boolean,
         timestamp: Date,
         percentageCorrect: Number,
@@ -66,7 +66,11 @@ questionProgressSchema.path('nextReview').set((value) => {
 });
 
 questionProgressSchema.pre('save', async function (next) {
-  this.nextReview = new Date(this.nextReview).setHours(0, 0, 0, 0);
+  if (this.isModified('nextReview')) {
+    const currentDate = new Date(this.nextReview);
+    currentDate.setUTCHours(0, 0, 0, 0);
+    this.nextReview = currentDate;
+  }
   next();
 });
 

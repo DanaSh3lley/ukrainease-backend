@@ -52,6 +52,10 @@ const lessonSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  icon: {
+    type: String,
+    required: false,
+  },
   level: {
     type: Number,
     required: true,

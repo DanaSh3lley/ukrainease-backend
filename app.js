@@ -39,10 +39,15 @@ app.use(
 );
 app.options('*', cors());
 
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: false,
+  })
+);
 
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
+app.use(express.static(path.join(__dirname, 'public')));
 
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
