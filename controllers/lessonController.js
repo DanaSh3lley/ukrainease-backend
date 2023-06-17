@@ -588,16 +588,12 @@ const submitQuestion = async (req, res, next) => {
   }
 
   const question = await findQuestionById(questionId);
-
+  console.log(questionId);
   if (!question) {
     return next(new AppError('Question not found', 404));
   }
 
   let questionProgress = await findQuestionProgress(req.user.id, question._id);
-
-  if (validateQuestionProgress(questionProgress)) {
-    return next(new AppError('Question cannot be updated yet', 400));
-  }
 
   if (!questionProgress) {
     questionProgress = createQuestionProgress(req.user.id, question._id);

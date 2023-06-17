@@ -94,7 +94,7 @@ async function assignEarnings(user, pointsEarned) {
 
     const notification = new Notification({
       recipient: user._id,
-      message: `Congratulations! You have achieved level ${userLevel}.`,
+      message: `Вітаю! Ви досягла ${userLevel} рівня!.`,
       importance: 'high',
     });
 

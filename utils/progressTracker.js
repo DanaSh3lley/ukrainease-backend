@@ -84,7 +84,7 @@ const checkAwardAchievement = async (userId, awardId, criteriaType) => {
 
         const notification = new Notification({
           recipient: userId,
-          message: `Congratulations! You achieved new award.`,
+          message: `Вітаю! ви отримали нову винагороду!`,
           importance: 'low',
         });
 
